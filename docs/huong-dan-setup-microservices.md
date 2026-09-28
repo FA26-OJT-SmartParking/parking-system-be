@@ -196,4 +196,5 @@ Phiên bản gói ghi ở `Directory.Packages.props`. MassTransit giữ bản 8 
 - **RAM:** cả hệ thống khoảng 12 container, nên có 16 GB. Máy 8 GB thì chỉ bật service đang làm.
 - **IPN của VNPay cần URL công khai:** địa chỉ `https://<tên miền>/api/payment/vnpay/ipn` khai báo trong trang quản trị merchant của VNPay. Lúc dev dùng tunnel (Cloudflare Tunnel hoặc ngrok).
 - **OSRM:** máy chủ demo công khai có giới hạn truy cập. Gọi nhiều thì cache kết quả hoặc tự chạy OSRM bằng Docker.
+- **Máy ảo demo công khai:** chỉ mở cổng của gateway (8080, hoặc 80/443 qua reverse proxy). Không mở 18888 (Aspire Dashboard đang tắt đăng nhập), 15672 (RabbitMQ) và 5432 (PostgreSQL) ra Internet.
 - **Kubernetes:** để giai đoạn sau.
