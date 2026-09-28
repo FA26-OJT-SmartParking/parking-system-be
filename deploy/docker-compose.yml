@@ -1,0 +1,125 @@
+# Local development stack. Run from this folder: copy ../.env.example to .env, fill it in, then
+#   docker compose up --build                 (add --profile sim to start the camera simulator)
+name: parking
+
+x-service-env: &service-env
+  ASPNETCORE_ENVIRONMENT: Development
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
+  RabbitMq__Host: rabbitmq
+  RabbitMq__Username: ${RABBITMQ_USER}
+  RabbitMq__Password: ${RABBITMQ_PASSWORD}
+  Jwt__Issuer: parking-identity
+  Jwt__SigningKey: ${JWT_SIGNING_KEY}
+
+x-infra-ready: &infra-ready
+  postgres: { condition: service_healthy }
+  rabbitmq: { condition: service_healthy }
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SERVICE_DB_PASSWORD: ${SERVICE_DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    ports: ["5432:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    volumes:
+      - ./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
+    ports: ["15672:15672", "1883:1883"]   # management UI, MQTT
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      retries: 10
+
+  aspire-dashboard:
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13
+    environment:
+      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"   # local development only
+    ports: ["18888:18888"]
+
+  gateway:
+    build: { context: .., dockerfile: gateway/Dockerfile }
+    environment: *service-env
+    ports: ["8080:8080"]
+    depends_on: [identity, parking, booking, payment, notification, ai]
+
+  identity:
+    build: { context: .., dockerfile: services/identity/Dockerfile }
+    environment:
+      <<: *service-env
+      ConnectionStrings__Db: Host=postgres;Database=identity_db;Username=identity_svc;Password=${SERVICE_DB_PASSWORD}
+    depends_on: *infra-ready
+
+  parking:
+    build: { context: .., dockerfile: services/parking/Dockerfile }
+    environment:
+      <<: *service-env
+      ConnectionStrings__Db: Host=postgres;Database=parking_db;Username=parking_svc;Password=${SERVICE_DB_PASSWORD}
+      Mqtt__Host: rabbitmq
+      Mqtt__Username: ${RABBITMQ_USER}
+      Mqtt__Password: ${RABBITMQ_PASSWORD}
+    depends_on: *infra-ready
+
+  booking:
+    build: { context: .., dockerfile: services/booking/Dockerfile }
+    environment:
+      <<: *service-env
+      ConnectionStrings__Db: Host=postgres;Database=booking_db;Username=booking_svc;Password=${SERVICE_DB_PASSWORD}
+    depends_on: *infra-ready
+
+  payment:
+    build: { context: .., dockerfile: services/payment/Dockerfile }
+    environment:
+      <<: *service-env
+      ConnectionStrings__Db: Host=postgres;Database=payment_db;Username=payment_svc;Password=${SERVICE_DB_PASSWORD}
+      Vnpay__TmnCode: ${VNPAY_TMN_CODE}
+      Vnpay__HashSecret: ${VNPAY_HASH_SECRET}
+      Vnpay__ReturnUrl: ${PUBLIC_BASE_URL}/payment/return
+    depends_on: *infra-ready
+
+  notification:
+    build: { context: .., dockerfile: services/notification/Dockerfile }
+    environment:
+      <<: *service-env
+      ConnectionStrings__Db: Host=postgres;Database=notification_db;Username=notification_svc;Password=${SERVICE_DB_PASSWORD}
+      Smtp__Host: ${SMTP_HOST}
+      Smtp__Username: ${SMTP_USER}
+      Smtp__Password: ${SMTP_PASSWORD}
+    depends_on: *infra-ready
+
+  ai:
+    build: ../services/ai
+    environment:
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
+      OSRM_URL: https://router.project-osrm.org
+    depends_on: *infra-ready
+
+  camera-simulator:
+    build: ../edge/camera-simulator
+    environment:
+      MQTT_HOST: rabbitmq
+      MQTT_USER: ${RABBITMQ_USER}
+      MQTT_PASSWORD: ${RABBITMQ_PASSWORD}
+      LOT_ID: 00000000-0000-0000-0000-000000000001
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+    restart: on-failure
+    profiles: ["sim"]
+
+volumes:
+  pgdata:
