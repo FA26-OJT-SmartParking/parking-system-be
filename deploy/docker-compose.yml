@@ -64,18 +64,20 @@ services:
     ports: ["8088:8080"]   # 8080 is often taken on dev machines
     depends_on: [identity, parking, booking, payment, notification, ai]
 
+  # Connection strings disable GSS encryption: Npgsql tries it by default and the .NET runtime image
+  # has no libgssapi_krb5, which logs an error on every connection. Kerberos is not used here.
   identity:
     build: { context: .., dockerfile: services/identity/Dockerfile }
     environment:
       <<: *service-env
-      ConnectionStrings__Db: Host=postgres;Database=identity_db;Username=identity_svc;Password=${SERVICE_DB_PASSWORD}
+      ConnectionStrings__Db: Host=postgres;Database=identity_db;Username=identity_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
     depends_on: *infra-ready
 
   parking:
     build: { context: .., dockerfile: services/parking/Dockerfile }
     environment:
       <<: *service-env
-      ConnectionStrings__Db: Host=postgres;Database=parking_db;Username=parking_svc;Password=${SERVICE_DB_PASSWORD}
+      ConnectionStrings__Db: Host=postgres;Database=parking_db;Username=parking_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
       Mqtt__Host: rabbitmq
       Mqtt__Username: ${RABBITMQ_USER}
       Mqtt__Password: ${RABBITMQ_PASSWORD}
@@ -85,14 +87,14 @@ services:
     build: { context: .., dockerfile: services/booking/Dockerfile }
     environment:
       <<: *service-env
-      ConnectionStrings__Db: Host=postgres;Database=booking_db;Username=booking_svc;Password=${SERVICE_DB_PASSWORD}
+      ConnectionStrings__Db: Host=postgres;Database=booking_db;Username=booking_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
     depends_on: *infra-ready
 
   payment:
     build: { context: .., dockerfile: services/payment/Dockerfile }
     environment:
       <<: *service-env
-      ConnectionStrings__Db: Host=postgres;Database=payment_db;Username=payment_svc;Password=${SERVICE_DB_PASSWORD}
+      ConnectionStrings__Db: Host=postgres;Database=payment_db;Username=payment_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
       Vnpay__TmnCode: ${VNPAY_TMN_CODE}
       Vnpay__HashSecret: ${VNPAY_HASH_SECRET}
       Vnpay__ReturnUrl: ${PUBLIC_BASE_URL}/payment/return
@@ -102,7 +104,7 @@ services:
     build: { context: .., dockerfile: services/notification/Dockerfile }
     environment:
       <<: *service-env
-      ConnectionStrings__Db: Host=postgres;Database=notification_db;Username=notification_svc;Password=${SERVICE_DB_PASSWORD}
+      ConnectionStrings__Db: Host=postgres;Database=notification_db;Username=notification_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
       Smtp__Host: ${SMTP_HOST}
       Smtp__Username: ${SMTP_USER}
       Smtp__Password: ${SMTP_PASSWORD}
