@@ -7,4 +7,4 @@ npm create vite@latest . -- --template react-ts
 npm install three
 ```
 
-During development the app runs on `http://localhost:5173` and calls the gateway at `http://localhost:8080` (CORS already allows this origin). Real-time slot updates come from the SignalR hub at `/hubs/parking` (event `slotStatusChanged`).
+During development the app runs on `http://localhost:5173` and calls the gateway at `http://localhost:8088` (CORS already allows this origin). Real-time slot updates come from the SignalR hub at `/hubs/parking` (event `slotStatusChanged`).

@@ -155,11 +155,11 @@ parking-system/
 1. Cài Docker Desktop. Nếu ổ C: ít chỗ, vào Settings → Resources → Advanced → Disk image location để chuyển dữ liệu sang ổ khác.
 2. Tại thư mục `deploy`, chép `../.env.example` thành `.env` rồi điền giá trị (`JWT_SIGNING_KEY` dài ít nhất 32 ký tự).
 3. `docker compose up --build`. Thêm `--profile sim` để chạy trình giả lập camera.
-4. Kiểm tra:
-   - Gateway: `http://localhost:8080/health`
+4. Kiểm tra (trên máy host, gateway dùng cổng 8088 và PostgreSQL dùng 5433 để không trùng phần mềm cài sẵn hay chiếm 8080 và 5432):
+   - Gateway: `http://localhost:8088/health`
    - Aspire Dashboard (log, trace): `http://localhost:18888`
    - RabbitMQ: `http://localhost:15672`
-   - Luồng mẫu camera → parking → ai: `http://localhost:8080/api/ai/events/recent`
+   - Luồng mẫu camera → parking → ai: `http://localhost:8088/api/ai/events/recent`
 
 Chạy một service .NET ngoài Docker để debug: bật hạ tầng bằng compose, rồi đặt `ConnectionStrings__Db`, `Jwt__SigningKey`, `RabbitMq__*` bằng biến môi trường hoặc `dotnet user-secrets`. Service không đọc được `Jwt:SigningKey` thì dừng ngay khi khởi động.
 
@@ -196,5 +196,5 @@ Phiên bản gói ghi ở `Directory.Packages.props`. MassTransit giữ bản 8 
 - **RAM:** cả hệ thống khoảng 12 container, nên có 16 GB. Máy 8 GB thì chỉ bật service đang làm.
 - **IPN của VNPay cần URL công khai:** địa chỉ `https://<tên miền>/api/payment/vnpay/ipn` khai báo trong trang quản trị merchant của VNPay. Lúc dev dùng tunnel (Cloudflare Tunnel hoặc ngrok).
 - **OSRM:** máy chủ demo công khai có giới hạn truy cập. Gọi nhiều thì cache kết quả hoặc tự chạy OSRM bằng Docker.
-- **Máy ảo demo công khai:** chỉ mở cổng của gateway (8080, hoặc 80/443 qua reverse proxy). Không mở 18888 (Aspire Dashboard đang tắt đăng nhập), 15672 (RabbitMQ) và 5432 (PostgreSQL) ra Internet.
+- **Máy ảo demo công khai:** chỉ mở cổng của gateway (8088, hoặc 80/443 qua reverse proxy). Không mở 18888 (Aspire Dashboard đang tắt đăng nhập), 15672 (RabbitMQ) và 5433 (PostgreSQL) ra Internet.
 - **Kubernetes:** để giai đoạn sau.

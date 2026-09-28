@@ -42,8 +42,8 @@ Fill in `deploy/.env` before starting. Add `--profile sim` to `docker compose up
 
 | URL | What |
 |---|---|
-| http://localhost:8080/health | Gateway health |
-| http://localhost:8080/api/ai/events/recent | Last slot events received by the AI service (sample flow) |
+| http://localhost:8088/health | Gateway health |
+| http://localhost:8088/api/ai/events/recent | Last slot events received by the AI service (sample flow) |
 | http://localhost:18888 | Aspire Dashboard: logs, traces, metrics |
 | http://localhost:15672 | RabbitMQ management |
 
