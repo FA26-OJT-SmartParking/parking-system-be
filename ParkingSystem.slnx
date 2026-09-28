@@ -1,0 +1,32 @@
+<Solution>
+  <Folder Name="/contracts/">
+    <Project Path="contracts/ParkingSystem.Contracts/ParkingSystem.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/gateway/">
+    <Project Path="gateway/Gateway/Gateway.csproj" />
+  </Folder>
+  <Folder Name="/services/" />
+  <Folder Name="/services/booking/">
+    <Project Path="services/booking/Booking.Api/Booking.Api.csproj" />
+    <Project Path="services/booking/Booking.Tests/Booking.Tests.csproj" />
+  </Folder>
+  <Folder Name="/services/identity/">
+    <Project Path="services/identity/Identity.Api/Identity.Api.csproj" />
+    <Project Path="services/identity/Identity.Tests/Identity.Tests.csproj" />
+  </Folder>
+  <Folder Name="/services/notification/">
+    <Project Path="services/notification/Notification.Api/Notification.Api.csproj" />
+    <Project Path="services/notification/Notification.Tests/Notification.Tests.csproj" />
+  </Folder>
+  <Folder Name="/services/parking/">
+    <Project Path="services/parking/Parking.Api/Parking.Api.csproj" />
+    <Project Path="services/parking/Parking.Tests/Parking.Tests.csproj" />
+  </Folder>
+  <Folder Name="/services/payment/">
+    <Project Path="services/payment/Payment.Api/Payment.Api.csproj" />
+    <Project Path="services/payment/Payment.Tests/Payment.Tests.csproj" />
+  </Folder>
+  <Folder Name="/shared/">
+    <Project Path="shared/ParkingSystem.ServiceDefaults/ParkingSystem.ServiceDefaults.csproj" />
+  </Folder>
+</Solution>
