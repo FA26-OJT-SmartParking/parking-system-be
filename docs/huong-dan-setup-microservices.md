@@ -161,7 +161,17 @@ parking-system/
    - RabbitMQ: `http://localhost:15672`
    - Luồng mẫu camera → parking → ai: `http://localhost:8088/api/ai/events/recent`
 
-Chạy một service .NET ngoài Docker để debug: bật hạ tầng bằng compose, rồi đặt `ConnectionStrings__Db`, `Jwt__SigningKey`, `RabbitMq__*` bằng biến môi trường hoặc `dotnet user-secrets`. Service không đọc được `Jwt:SigningKey` thì dừng ngay khi khởi động.
+Các cổng chỉ dùng khi dev (PostgreSQL 5433, RabbitMQ 5672 và 15672, Aspire 18888 và 18889) chỉ mở trên `127.0.0.1`. Máy khác chỉ vào được gateway (8088) và MQTT (1883).
+
+Chạy một service .NET ngoài Docker để debug, ví dụ parking:
+
+1. `docker compose stop parking` để container của service đó không chạy song song.
+2. Đặt cấu hình bằng biến môi trường (dùng `__` thay cho `:`) hoặc `dotnet user-secrets` (chạy `dotnet user-secrets init` một lần cho project):
+   - `ConnectionStrings:Db` = `Host=localhost;Port=5433;Database=parking_db;Username=parking_svc;Password=<SERVICE_DB_PASSWORD>`
+   - `RabbitMq:Host` = `localhost`, cùng `RabbitMq:Username` và `RabbitMq:Password` như trong `.env`. Riêng parking thêm `Mqtt:Host` = `localhost`, `Mqtt:Username`, `Mqtt:Password`.
+   - `Jwt:SigningKey` như trong `.env`. Thiếu khóa này thì service dừng ngay khi khởi động.
+   - `OTEL_EXPORTER_OTLP_ENDPOINT` = `http://localhost:18889` nếu muốn xem log và trace trên Aspire Dashboard.
+3. `dotnet run --project services/parking/Parking.Api`, rồi gọi thẳng service ở cổng nó in ra. Gateway trong Docker vẫn trỏ tới container, nên request qua gateway không tới bản đang debug.
 
 ## 8. Cấu hình chung (`shared/ParkingSystem.ServiceDefaults`)
 
@@ -196,5 +206,5 @@ Phiên bản gói ghi ở `Directory.Packages.props`. MassTransit giữ bản 8 
 - **RAM:** cả hệ thống khoảng 12 container, nên có 16 GB. Máy 8 GB thì chỉ bật service đang làm.
 - **IPN của VNPay cần URL công khai:** địa chỉ `https://<tên miền>/api/payment/vnpay/ipn` khai báo trong trang quản trị merchant của VNPay. Lúc dev dùng tunnel (Cloudflare Tunnel hoặc ngrok).
 - **OSRM:** máy chủ demo công khai có giới hạn truy cập. Gọi nhiều thì cache kết quả hoặc tự chạy OSRM bằng Docker.
-- **Máy ảo demo công khai:** chỉ mở cổng của gateway (8088, hoặc 80/443 qua reverse proxy). Không mở 18888 (Aspire Dashboard đang tắt đăng nhập), 15672 (RabbitMQ) và 5433 (PostgreSQL) ra Internet.
+- **Máy ảo demo công khai:** file compose đã chỉ mở các cổng dev trên `127.0.0.1`. Ở tường lửa của máy ảo chỉ mở cổng gateway (8088, hoặc 80/443 qua reverse proxy); mở thêm 1883 khi có camera thật gửi từ nơi khác. Aspire Dashboard đang tắt đăng nhập nên không được đưa ra Internet.
 - **Kubernetes:** để giai đoạn sau.

@@ -1,5 +1,6 @@
 # Local development stack. Run from this folder: copy ../.env.example to .env, fill it in, then
 #   docker compose up --build                 (add --profile sim to start the camera simulator)
+# Dev-only ports listen on 127.0.0.1; other machines can reach only the gateway (8088) and MQTT (1883).
 name: parking
 
 x-service-env: &service-env
@@ -24,7 +25,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./postgres/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
-    ports: ["5433:5432"]   # 5432 is often taken by a locally installed PostgreSQL
+    ports: ["127.0.0.1:5433:5432"]   # 5432 is often taken by a locally installed PostgreSQL
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -40,7 +41,10 @@ services:
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     volumes:
       - ./rabbitmq/enabled_plugins:/etc/rabbitmq/enabled_plugins:ro
-    ports: ["15672:15672", "1883:1883"]   # management UI, MQTT
+    ports:
+      - "127.0.0.1:15672:15672"   # management UI
+      - "127.0.0.1:5672:5672"     # AMQP, for services run outside Docker
+      - "1883:1883"               # MQTT, reachable from cameras on the LAN
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -50,7 +54,9 @@ services:
     image: mcr.microsoft.com/dotnet/aspire-dashboard:13
     environment:
       DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"   # local development only
-    ports: ["18888:18888"]
+    ports:
+      - "127.0.0.1:18888:18888"   # dashboard UI
+      - "127.0.0.1:18889:18889"   # OTLP/gRPC, for services run outside Docker
 
   gateway:
     build: { context: .., dockerfile: gateway/Dockerfile }
