@@ -152,7 +152,13 @@ parking-system/
 
 ## 7. Chạy trên máy
 
-1. Cài Docker Desktop. Nếu ổ C: ít chỗ, vào Settings → Resources → Advanced → Disk image location để chuyển dữ liệu sang ổ khác.
+1. Cài WSL và Docker Desktop. Trên Windows, mở PowerShell bằng quyền Administrator:
+   - Chạy `wsl --install --no-distribution`, rồi khởi động lại máy nếu được yêu cầu.
+   - Tải `Docker Desktop Installer.exe` từ docker.com. Nếu ổ C: ít chỗ, cài chương trình và dữ liệu sang ổ khác (thay `F:` bằng ổ của bạn):
+     ```
+     Start-Process '.\Docker Desktop Installer.exe' -Wait -ArgumentList 'install','--accept-license','--installation-dir=F:\Docker\Desktop','--wsl-default-data-root=F:\Docker\wsl'
+     ```
+   - Đã cài vào ổ C: rồi thì chuyển dữ liệu ở Settings → Resources → Advanced → Disk image location.
 2. Tại thư mục `deploy`, chép `../.env.example` thành `.env` rồi điền giá trị (`JWT_SIGNING_KEY` dài ít nhất 32 ký tự).
 3. `docker compose up --build`. Thêm `--profile sim` để chạy trình giả lập camera.
 4. Kiểm tra (trên máy host, gateway dùng cổng 8088 và PostgreSQL dùng 5433 để không trùng phần mềm cài sẵn hay chiếm 8080 và 5432):
