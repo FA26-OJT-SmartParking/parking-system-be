@@ -1,0 +1,29 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+TestResults/
+
+# NuGet packages restored into the repo (see nuget.config)
+.nuget/packages/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Node
+node_modules/
+dist/
+
+# Secrets and local settings
+.env
+*.env.local
+
+# IDE and OS
+.idea/
+.vscode/
+Thumbs.db
+.DS_Store
