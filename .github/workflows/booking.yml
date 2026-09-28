@@ -1,0 +1,39 @@
+name: booking
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - services/booking/**
+      - contracts/**
+      - shared/**
+      - Directory.Build.props
+      - Directory.Packages.props
+      - nuget.config
+      - .github/workflows/booking.yml
+  pull_request:
+    paths:
+      - services/booking/**
+      - contracts/**
+      - shared/**
+      - Directory.Build.props
+      - Directory.Packages.props
+      - nuget.config
+      - .github/workflows/booking.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
+      - run: dotnet test services/booking/Booking.Tests -c Release
