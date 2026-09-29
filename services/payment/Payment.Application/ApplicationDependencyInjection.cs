@@ -1,0 +1,23 @@
+using FluentValidation;
+using Payment.Application.Common.Behaviors;
+using MediatR;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace Payment.Application;
+
+public static class ApplicationDependencyInjection
+{
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
+    {
+        var assembly = typeof(ApplicationDependencyInjection).Assembly;
+
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly));
+        services.AddValidatorsFromAssembly(assembly);
+
+        // Every request goes through validation before its handler runs
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
+        return services;
+    }
+}
