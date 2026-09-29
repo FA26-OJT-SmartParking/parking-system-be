@@ -1,15 +1,15 @@
-using Booking.Application.Exceptions;
-using Booking.Application.Features.Availability;
-using Booking.Application.Interfaces;
+using Booking.Application.Common.Interfaces.Grpc;
+using Booking.Application.Common.Models.Exceptions;
+using Booking.Application.DTOs;
 using Grpc.Core;
 using ParkingSystem.Grpc.Parking;
 
-namespace Booking.Infrastructure.Grpc;
+namespace Booking.Infrastructure.GRPC.Client;
 
 /// <summary>Calls the parking service over gRPC (contract: grpc_proto/parking.proto).</summary>
-public class ParkingGrpcClient(ParkingService.ParkingServiceClient client) : IParkingClient
+public class ParkingGrpcClient(ParkingService.ParkingServiceClient client) : IParkingGrpcClient
 {
-    public async Task<IReadOnlyList<SlotStatus>> GetLotSlotsAsync(Guid lotId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<SlotStatusDto>> GetLotSlotsAsync(Guid lotId, CancellationToken cancellationToken)
     {
         try
         {
@@ -17,12 +17,12 @@ public class ParkingGrpcClient(ParkingService.ParkingServiceClient client) : IPa
                 new GetLotSlotsRequest { LotId = lotId.ToString() },
                 cancellationToken: cancellationToken);
             return response.Slots
-                .Select(slot => new SlotStatus(slot.Code, slot.Status, slot.UpdatedAt.ToDateTimeOffset()))
+                .Select(slot => new SlotStatusDto(slot.Code, slot.Status, slot.UpdatedAt.ToDateTimeOffset()))
                 .ToList();
         }
         catch (RpcException ex) when (ex.StatusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded)
         {
-            throw new ParkingUnavailableException("The parking service is not reachable.", ex);
+            throw new ParkingUnavailableException(Application.Resources.ParkingServiceUnavailable, ex);
         }
     }
 
@@ -48,7 +48,7 @@ public class ParkingGrpcClient(ParkingService.ParkingServiceClient client) : IPa
         }
         catch (RpcException ex) when (ex.StatusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded)
         {
-            throw new ParkingUnavailableException("The parking service is not reachable.", ex);
+            throw new ParkingUnavailableException(Application.Resources.ParkingServiceUnavailable, ex);
         }
     }
 }

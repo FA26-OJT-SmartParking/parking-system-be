@@ -1,5 +1,5 @@
-using Booking.Application.Exceptions;
-using Booking.Infrastructure.Grpc;
+using Booking.Application.Common.Models.Exceptions;
+using Booking.Infrastructure.GRPC.Client;
 using Grpc.Core;
 using Payment.Infrastructure.GRPC.Services;
 using ParkingSystem.Grpc.Payment;

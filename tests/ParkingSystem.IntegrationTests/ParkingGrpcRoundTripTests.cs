@@ -1,6 +1,8 @@
-using Booking.Application.Exceptions;
-using Booking.Application.Features.Availability;
-using Booking.Infrastructure.Grpc;
+using Booking.Application.Common.Interfaces.Grpc;
+using Booking.Application.Common.Models.Exceptions;
+using Booking.Application.Usecase.Availability;
+using Booking.Infrastructure.GRPC;
+using Booking.Infrastructure.GRPC.Client;
 using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Parking.Infrastructure.GRPC.Services;
@@ -25,7 +27,8 @@ public class ParkingGrpcRoundTripTests
             Slot("A-01", "Occupied"), Slot("A-02", "Available"), Slot("A-03", "Available"));
         var bookingSide = new ParkingGrpcClient(new ParkingService.ParkingServiceClient(parking.Channel));
 
-        var availability = await new GetLotAvailabilityHandler(bookingSide).HandleAsync(LotId, CancellationToken.None);
+        var availability = await new GetLotAvailabilityQueryHandler(new UnitOfGrpc(bookingSide, new UnusedPaymentGrpcClient()))
+            .Handle(new GetLotAvailabilityQuery(LotId), CancellationToken.None);
 
         Assert.Equal(3, availability.Total);
         Assert.Equal(2, availability.Available);
@@ -80,5 +83,11 @@ public class ParkingGrpcRoundTripTests
 
         public Task<IReadOnlyList<SlotState>> GetByLotAsync(Guid lotId, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<SlotState>>(slots.Where(slot => slot.LotId == lotId).OrderBy(slot => slot.Code).ToList());
+    }
+
+    private sealed class UnusedPaymentGrpcClient : IPaymentGrpcClient
+    {
+        public Task<(bool HasDebt, long Amount)> CheckDebtAsync(string plateNumber, Guid lotId, CancellationToken cancellationToken) =>
+            throw new NotSupportedException("The parking test does not call the payment service");
     }
 }

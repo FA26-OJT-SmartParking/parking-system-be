@@ -1,12 +1,12 @@
-using Booking.Application.Exceptions;
-using Booking.Application.Interfaces;
+using Booking.Application.Common.Interfaces.Grpc;
+using Booking.Application.Common.Models.Exceptions;
 using Grpc.Core;
 using ParkingSystem.Grpc.Payment;
 
-namespace Booking.Infrastructure.Grpc;
+namespace Booking.Infrastructure.GRPC.Client;
 
 /// <summary>Calls the payment service over gRPC (contract: grpc_proto/payment.proto).</summary>
-public class PaymentGrpcClient(PaymentService.PaymentServiceClient client) : IPaymentClient
+public class PaymentGrpcClient(PaymentService.PaymentServiceClient client) : IPaymentGrpcClient
 {
     public async Task<(bool HasDebt, long Amount)> CheckDebtAsync(string plateNumber, Guid lotId, CancellationToken cancellationToken)
     {

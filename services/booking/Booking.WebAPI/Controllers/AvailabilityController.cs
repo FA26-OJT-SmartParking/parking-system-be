@@ -1,24 +1,19 @@
-using Booking.Application.Exceptions;
-using Booking.Application.Features.Availability;
+using Booking.Application;
+using Booking.Application.Usecase.Availability;
+using Booking.WebAPI.Controllers.Base;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Booking.WebAPI.Controllers;
 
-[ApiController]
-[Route("lots")]
-public class AvailabilityController(GetLotAvailabilityHandler handler) : ControllerBase
+[Route("api/booking/lots")]
+public class AvailabilityController(IMediator mediator) : ApiControllerBase(mediator)
 {
     /// <summary>Free and occupied slots of a lot. Public: guests can browse lots.</summary>
     [HttpGet("{lotId:guid}/availability")]
-    public async Task<ActionResult<LotAvailability>> Get(Guid lotId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Get(Guid lotId, CancellationToken cancellationToken)
     {
-        try
-        {
-            return await handler.HandleAsync(lotId, cancellationToken);
-        }
-        catch (ParkingUnavailableException)
-        {
-            return Problem(statusCode: StatusCodes.Status503ServiceUnavailable, title: "Parking service unavailable");
-        }
+        var availability = await Mediator.Send(new GetLotAvailabilityQuery(lotId), cancellationToken);
+        return Success(availability, Resources.LotAvailabilityRetrieved);
     }
 }
