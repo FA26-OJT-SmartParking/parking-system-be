@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Core.Api" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Server and client code for every .proto in this folder. The Python AI service generates its own code from the same files. -->
+    <Protobuf Include="*.proto" GrpcServices="Both" />
+  </ItemGroup>
+
+</Project>

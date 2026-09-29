@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package parking.v1;
+
+option csharp_namespace = "ParkingSystem.Grpc.Parking";
+
+import "google/protobuf/timestamp.proto";
+
+// Queries the parking service answers for other services (internal network only, port 8081).
+service ParkingService {
+  // Current status of every slot of a lot, ordered by slot code.
+  rpc GetLotSlots (GetLotSlotsRequest) returns (GetLotSlotsResponse);
+}
+
+message GetLotSlotsRequest {
+  string lot_id = 1; // GUID
+}
+
+message GetLotSlotsResponse {
+  repeated SlotInfo slots = 1;
+}
+
+message SlotInfo {
+  string code = 1;   // for example "A-01"
+  string status = 2; // "Available" or "Occupied"
+  google.protobuf.Timestamp updated_at = 3;
+}
