@@ -36,4 +36,16 @@
   <data name="NotFoundMessage" xml:space="preserve">
     <value>The requested resource was not found.</value>
   </data>
+  <data name="UsernameIsRequired" xml:space="preserve">
+    <value>userName is missing.</value>
+  </data>
+  <data name="PasswordIsRequired" xml:space="preserve">
+    <value>password is missing.</value>
+  </data>
+  <data name="IncorrectUsernameOrPassword" xml:space="preserve">
+    <value>Incorrect username or password. Try again.</value>
+  </data>
+  <data name="SignInSuccessfully" xml:space="preserve">
+    <value>Sign in successfully</value>
+  </data>
 </root>

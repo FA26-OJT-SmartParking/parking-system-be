@@ -2,6 +2,7 @@ using Identity.Application;
 using Identity.Infrastructure;
 using Identity.Persistence;
 using Identity.WebAPI.Middleware;
+using Identity.WebAPI.Seeding;
 using Microsoft.AspNetCore.Mvc;
 using ParkingSystem.ServiceDefaults;
 
@@ -37,6 +38,7 @@ if (app.Environment.IsDevelopment())
 app.UseServiceDefaults(application => application.UseMiddleware<ExceptionHandlingMiddleware>());
 app.UseStatusCodePages(ErrorExceptionHandler.WriteStatusCodeBody);
 app.MigrateDatabase<ApplicationDbContext>();
+await DevelopmentUserSeeder.SeedAsync(app);
 app.MapControllers();
 
 app.Run();
