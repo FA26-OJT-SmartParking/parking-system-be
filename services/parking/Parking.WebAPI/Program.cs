@@ -40,6 +40,7 @@ if (app.Environment.IsDevelopment())
 
 // Request logging, then the error middleware, then authentication and authorization, then /health
 app.UseServiceDefaults(application => application.UseMiddleware<ExceptionHandlingMiddleware>());
+app.UseStatusCodePages(ErrorExceptionHandler.WriteStatusCodeBody);
 app.MigrateDatabase<ApplicationDbContext>();
 app.MapGrpcService<ParkingGrpcService>();
 app.MapHub<ParkingHub>("/hubs/parking");

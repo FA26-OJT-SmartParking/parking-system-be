@@ -2,6 +2,7 @@ using FluentValidation;
 using Identity.Application;
 using Identity.Application.Common.Models;
 using Identity.Application.Common.Models.Exceptions;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,11 +26,23 @@ public static class ErrorExceptionHandler
     /// <summary>A request body that cannot be read (bad JSON, wrong type) is answered with the same body as every other error.</summary>
     public static IActionResult InvalidModelState(ActionContext context)
     {
-        var message = context.ModelState.Values
-            .SelectMany(entry => entry.Errors)
-            .Select(error => error.ErrorMessage)
-            .FirstOrDefault(text => !string.IsNullOrWhiteSpace(text)) ?? Resources.CommonErrorMessage;
+        var failed = context.ModelState.FirstOrDefault(entry => entry.Value?.Errors.Count > 0);
+        var error = failed.Value?.Errors.FirstOrDefault();
+
+        // Errors of the JSON body have keys such as "$.userName"; the parser message ("... LineNumber: 0 ...") means nothing to the client
+        var isBodyError = failed.Key is not null && failed.Key.StartsWith('$');
+        var message = error is null ? Resources.CommonErrorMessage
+            : isBodyError || error.Exception is not null || string.IsNullOrWhiteSpace(error.ErrorMessage) ? Resources.InvalidRequestBodyMessage
+            : error.ErrorMessage;
         return new ObjectResult(ApiResponse.Failure(StatusCodes.Status400BadRequest, message)) { StatusCode = StatusCodes.Status400BadRequest };
+    }
+
+    /// <summary>Gives an empty error response (for example 404 for an unknown route) the same body as every other error.</summary>
+    public static Task WriteStatusCodeBody(StatusCodeContext context)
+    {
+        var statusCode = context.HttpContext.Response.StatusCode;
+        var message = statusCode == StatusCodes.Status404NotFound ? Resources.NotFoundMessage : Resources.CommonErrorMessage;
+        return context.HttpContext.Response.WriteAsJsonAsync(ApiResponse.Failure(statusCode, message));
     }
 
     private static (int, ApiResponse<object>) Failure(int statusCode, string message) =>

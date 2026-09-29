@@ -35,4 +35,7 @@ public class Resources
 
     public static string ForbiddenMessage => ResourceManager.GetString("ForbiddenMessage", Culture) ?? string.Empty;
 
+    public static string InvalidRequestBodyMessage => ResourceManager.GetString("InvalidRequestBodyMessage", Culture) ?? string.Empty;
+
+    public static string NotFoundMessage => ResourceManager.GetString("NotFoundMessage", Culture) ?? string.Empty;
 }

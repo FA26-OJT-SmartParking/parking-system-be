@@ -85,6 +85,21 @@ public class AvailabilityEndpointTests
         Assert.Contains("\"statusCode\":500", text);
     }
 
+    [Fact]
+    public async Task Get_LotIdIsNotAGuid_Returns404WithTheStandardBody()
+    {
+        using var host = await StartAsync(new FakeUnitOfGrpc());
+
+        var response = await host.GetTestClient().GetAsync("/api/booking/lots/abc/availability");
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(JsonValueKind.Null, body.RootElement.GetProperty("result").ValueKind);
+        Assert.False(body.RootElement.GetProperty("isSuccess").GetBoolean());
+        Assert.Equal(404, body.RootElement.GetProperty("statusCode").GetInt32());
+        Assert.Equal("The requested resource was not found.", body.RootElement.GetProperty("message").GetString());
+    }
+
     private static async Task<IHost> StartAsync(IUnitOfGrpc unitOfGrpc) =>
         await new HostBuilder()
             .ConfigureWebHost(web => web
@@ -102,6 +117,7 @@ public class AvailabilityEndpointTests
                 .Configure(app =>
                 {
                     app.UseMiddleware<ExceptionHandlingMiddleware>();
+                    app.UseStatusCodePages(ErrorExceptionHandler.WriteStatusCodeBody);
                     app.UseRouting();
                     app.UseEndpoints(endpoints => endpoints.MapControllers());
                 }))
