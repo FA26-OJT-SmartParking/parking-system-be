@@ -25,7 +25,7 @@ This repository holds the backend. The web app is in [parking-system-fe](https:/
 | Data | PostgreSQL 17 (one database per service), Redis |
 | Observability | Serilog, OpenTelemetry, Aspire Dashboard |
 | Frontend | Next.js + React + Three.js, separate repository [parking-system-fe](https://github.com/FA26-OJT-SmartParking/parking-system-fe) |
-| Run | Docker Compose; CI on GitHub Actions |
+| Run | Docker Compose |
 
 ## Requirements
 
@@ -90,11 +90,11 @@ pytest
 | `edge/camera-simulator/` | Publishes fake zone-camera readings over MQTT |
 | `deploy/` | Docker Compose stack, database init script, RabbitMQ plugins |
 | `docs/` | Setup guide and team workflow (Vietnamese) |
-| `.github/` | CI workflows and pull request templates |
+| `.github/` | GitHub Actions workflows and the pull request templates from the mentor guide |
 
 ## Team workflow
 
-Branches follow the mentor's guide: `main` (tested sprint releases), `develop`, `features/Implementation_<UserStory>`, `features/Design_<UserStory>`, `hotfix/Bug_<UserStory>`, `release/sprint_x`. Commits are in English, one change per commit; pull requests go to `develop` using the template. Details: `docs/workflow.md`.
+Branches follow the mentor's guide: `main`, `develop`, `features/Implementation_<UserStory>`, `features/Design_<UserStory>`, `hotfix/Bug_<UserStory>`, `release/sprint_x`. Commits are in English (team choice), one change per commit; every feature is merged through a pull request that uses the guide's template. Details, and which rules come from the guide and which are the team's own: `docs/workflow.md`.
 
 ## Team
 

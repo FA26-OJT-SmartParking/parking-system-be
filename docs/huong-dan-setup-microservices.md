@@ -219,8 +219,8 @@ Phiên bản gói ghi ở `Directory.Packages.props`. MassTransit giữ bản 8 
 - Unit test: `dotnet test ParkingSystem.slnx`; ai: `cd services/ai`, `pip install -r requirements-dev.txt`, `pytest`.
 - Integration: chạy service với PostgreSQL và RabbitMQ thật (Testcontainers) khi bắt đầu có nghiệp vụ.
 - Saga: cọc thất bại, hết hạn chờ cọc, IPN của VNPay đến trễ hoặc đến 2 lần.
-- CI: mỗi service một workflow trong `.github/workflows/`, chỉ chạy khi thư mục của service (hoặc `grpc_proto/`, `shared/`) thay đổi; workflow `integration` chạy test gRPC giữa booking và parking; chạy trên push vào `main`, `develop` và trên mọi pull request.
-- CD chưa cần: lúc demo thì triển khai tay trên máy ảo Azure for Students bằng `git pull` rồi `docker compose up -d --build`.
+- CI: Gitlab Guide chỉ ghi dòng "CI/CD pipeline passes successfully" trong Definition of Done, không quy định pipeline cụ thể. Các workflow trong `.github/workflows/` là thiết kế của nhóm: mỗi service một workflow, chỉ chạy khi thư mục của service (hoặc `grpc_proto/`, `shared/`) thay đổi; workflow `integration` chạy test gRPC giữa booking và parking; kích hoạt trên push vào `main`, `develop` và trên pull request. Đến 29/09/2026 các workflow này chưa chạy lần nào trên GitHub.
+- CD chưa làm; cách triển khai khi demo chưa chốt.
 
 ## 11. Lưu ý
 
@@ -232,7 +232,7 @@ Phiên bản gói ghi ở `Directory.Packages.props`. MassTransit giữ bản 8 
 
 ## 12. Quyết định còn mở (rà soát ngày 29/09)
 
-Trong `Downloads` có 3 tài liệu khác nhau về nghiệp vụ và kỹ thuật: `SRS.md` v1.1, `context_bai_do_xe_v1.2_microservice.md` và `context_v10.docx`. Nhóm đang hỏi mentor để chốt nguồn chuẩn. Các điểm sau có thể phải đổi ở khung này:
+Trong `Downloads` có 3 tài liệu khác nhau về nghiệp vụ và kỹ thuật: `SRS.md` v1.1, `context_bai_do_xe_v1.2_microservice.md` và `context_v10.docx`. Cần hỏi mentor để chốt nguồn chuẩn. Các điểm sau có thể phải đổi ở khung này:
 
 | Điểm | Khung hiện tại | SRS v1.1 |
 |---|---|---|
