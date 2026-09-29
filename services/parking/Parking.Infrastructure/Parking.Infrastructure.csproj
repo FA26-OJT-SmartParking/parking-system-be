@@ -5,6 +5,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="MassTransit.RabbitMQ" />
     <PackageReference Include="MassTransit.EntityFrameworkCore" />
   </ItemGroup>
@@ -14,6 +15,7 @@
     <ProjectReference Include="..\Parking.Application\Parking.Application.csproj" />
     <ProjectReference Include="..\Parking.Persistence\Parking.Persistence.csproj" />
     <ProjectReference Include="..\..\..\shared\ParkingSystem.Contracts\ParkingSystem.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\grpc_proto\ParkingSystem.Grpc.csproj" />
   </ItemGroup>
 
 </Project>

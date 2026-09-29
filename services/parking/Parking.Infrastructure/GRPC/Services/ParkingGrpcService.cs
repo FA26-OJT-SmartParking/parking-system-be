@@ -3,7 +3,7 @@ using Grpc.Core;
 using Parking.Application.Common.Interfaces.Persistence;
 using ParkingSystem.Grpc.Parking;
 
-namespace Parking.WebAPI.GrpcServices;
+namespace Parking.Infrastructure.GRPC.Services;
 
 /// <summary>Answers slot queries from other services (contract: grpc_proto/parking.proto).</summary>
 public class ParkingGrpcService(ISlotStateStore slots) : ParkingService.ParkingServiceBase

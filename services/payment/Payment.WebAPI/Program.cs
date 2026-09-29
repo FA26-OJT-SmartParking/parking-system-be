@@ -1,5 +1,5 @@
-using Payment.WebAPI.GrpcServices;
 using Payment.Infrastructure;
+using Payment.Infrastructure.GRPC.Services;
 using Payment.Persistence;
 using ParkingSystem.ServiceDefaults;
 
@@ -7,7 +7,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults("payment");
 builder.Services.AddInfrastructureServices(builder.Configuration);
-builder.Services.AddGrpc();
 
 var app = builder.Build();
 

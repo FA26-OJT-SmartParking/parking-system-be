@@ -1,7 +1,7 @@
 using Booking.Application.Exceptions;
 using Booking.Infrastructure.Grpc;
 using Grpc.Core;
-using Payment.WebAPI.GrpcServices;
+using Payment.Infrastructure.GRPC.Services;
 using ParkingSystem.Grpc.Payment;
 
 namespace ParkingSystem.IntegrationTests;

@@ -1,7 +1,7 @@
 using Grpc.Core;
 using ParkingSystem.Grpc.Payment;
 
-namespace Payment.WebAPI.GrpcServices;
+namespace Payment.Infrastructure.GRPC.Services;
 
 /// <summary>Answers payment queries from other services (contract: grpc_proto/payment.proto).</summary>
 public class PaymentGrpcService : PaymentService.PaymentServiceBase
