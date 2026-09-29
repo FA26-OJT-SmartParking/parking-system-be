@@ -22,8 +22,8 @@ This repository holds the backend. The web app is in [parking-system-fe](https:/
 | AI | Python 3.12, FastAPI |
 | Service calls | gRPC (contracts in `grpc_proto/`) |
 | Messaging | RabbitMQ with MassTransit 8 (outbox/inbox); RabbitMQ MQTT plugin for cameras |
-| Data | PostgreSQL 17 (one database per service), Redis |
-| Observability | Serilog, OpenTelemetry, Aspire Dashboard |
+| Data | PostgreSQL 17: one database, one schema per service |
+| Observability | Serilog, OpenTelemetry, Aspire Dashboard (optional) |
 | Frontend | Next.js + React + Three.js, separate repository [parking-system-fe](https://github.com/FA26-OJT-SmartParking/parking-system-fe) |
 | Run | Docker Compose |
 
@@ -41,14 +41,14 @@ cp ../.env.example .env
 docker compose up --build
 ```
 
-Fill in `deploy/.env` before starting. Add `--profile sim` to `docker compose up` to start the camera simulator.
+Fill in `deploy/.env` before starting. By default only the core stack runs (postgres, rabbitmq, gateway, parking, booking). Add `--profile sim` for the camera simulator, `--profile ai` for the AI service, `--profile observability` for the Aspire Dashboard (also set `OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889` in `.env`), or `--profile full` for everything.
 
 | URL | What |
 |---|---|
 | http://localhost:8088/health | Gateway health |
-| http://localhost:8088/api/ai/events/recent | Last slot events received by the AI service (sample flow) |
+| http://localhost:8088/api/ai/events/recent | Last slot events received by the AI service (profiles `ai` and `sim`) |
 | http://localhost:8088/api/booking/lots/{lotId}/availability | Free and occupied slots of a lot (public) |
-| http://localhost:18888 | Aspire Dashboard: logs, traces, metrics |
+| http://localhost:18888 | Aspire Dashboard: logs, traces, metrics (profile `observability`) |
 | http://localhost:15672 | RabbitMQ management |
 
 ## Configuration (`deploy/.env`)
@@ -56,7 +56,7 @@ Fill in `deploy/.env` before starting. Add `--profile sim` to `docker compose up
 | Variable | Meaning |
 |---|---|
 | `POSTGRES_PASSWORD` | PostgreSQL superuser password |
-| `SERVICE_DB_PASSWORD` | Password of the per-service database logins |
+| `SERVICE_DB_PASSWORD` | Password of the database login `app_svc` |
 | `RABBITMQ_USER`, `RABBITMQ_PASSWORD` | RabbitMQ user, also used by MQTT clients |
 | `JWT_PUBLIC_KEY` | RS256 public key (base64 DER, one line); the gateway and every service check tokens with it. `deploy/generate-jwt-keys.sh` prints a key pair |
 | `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` | VNPay merchant credentials (payment service only) |

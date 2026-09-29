@@ -12,16 +12,16 @@ Trình duyệt (Next.js + React + Three.js, một ứng dụng duy nhất, repo 
         ▼
 API Gateway (YARP) ── kiểm tra JWT, CORS, định tuyến
         │  REST (gateway → service)
-        ├── identity      (.NET)   → identity_db
-        ├── parking       (.NET)   → parking_db       + SignalR hub
-        ├── booking       (.NET)   → booking_db
-        ├── payment       (.NET)   → payment_db       ──► VNPay
-        ├── notification  (.NET)   → notification_db  ──► SMTP
-        └── ai            (Python) → ai_db            ──► OSRM
+        ├── identity      (.NET)   → schema identity
+        ├── parking       (.NET)   → schema parking       + SignalR hub
+        ├── booking       (.NET)   → schema booking
+        ├── payment       (.NET)   → schema payment       ──► VNPay
+        ├── notification  (.NET)   → schema notification  ──► SMTP
+        └── ai            (Python)                        ──► OSRM
 Service gọi nhau khi cần kết quả ngay: gRPC (file .proto ở grpc_proto/), ví dụ booking → parking
 Sự kiện giữa các service: RabbitMQ + MassTransit
 Camera AI / trình giả lập ──MQTT──► RabbitMQ (plugin MQTT) ──► parking (sau này cả booking)
-Dùng chung: PostgreSQL (1 container), Redis, Aspire Dashboard (log, trace, metrics)
+Dùng chung: PostgreSQL (1 container, 1 database `parking_system`, mỗi service một schema), Aspire Dashboard tùy chọn (log, trace, metrics)
 ```
 
 ## 2. Frontend ở repo riêng
@@ -176,12 +176,12 @@ Chiều phụ thuộc của mỗi service: `WebAPI → Infrastructure → Persis
      ```
    - Đã cài vào ổ C: rồi thì chuyển dữ liệu ở Settings → Resources → Advanced → Disk image location.
 2. Tại thư mục `deploy`, chép `../.env.example` thành `.env` rồi điền giá trị (chạy `bash generate-jwt-keys.sh` trong thư mục `deploy` để lấy `JWT_PUBLIC_KEY`).
-3. `docker compose up --build`. Thêm `--profile sim` để chạy trình giả lập camera.
+3. `docker compose up --build` chạy 5 container lõi (postgres, rabbitmq, gateway, parking, booking). Thêm profile khi cần: `--profile sim` (trình giả lập camera), `--profile ai`, `--profile observability` (Aspire Dashboard, đặt thêm `OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889` trong `.env`), `--profile full` (tất cả).
 4. Kiểm tra (trên máy host, gateway dùng cổng 8088 và PostgreSQL dùng 5433 để không trùng phần mềm cài sẵn hay chiếm 8080 và 5432):
    - Gateway: `http://localhost:8088/health`
-   - Aspire Dashboard (log, trace): `http://localhost:18888`
+   - Aspire Dashboard (log, trace, profile `observability`): `http://localhost:18888`
    - RabbitMQ: `http://localhost:15672`
-   - Luồng mẫu camera → parking → ai: `http://localhost:8088/api/ai/events/recent`
+   - Luồng mẫu camera → parking → ai (profile `sim` và `ai`): `http://localhost:8088/api/ai/events/recent`
 
 Các cổng chỉ dùng khi dev (PostgreSQL 5433, RabbitMQ 5672 và 15672, Aspire 18888 và 18889) chỉ mở trên `127.0.0.1`. Máy khác chỉ vào được gateway (8088) và MQTT (1883).
 
@@ -189,7 +189,7 @@ Chạy một service .NET ngoài Docker để debug, ví dụ parking:
 
 1. `docker compose stop parking` để container của service đó không chạy song song.
 2. Đặt cấu hình bằng biến môi trường (dùng `__` thay cho `:`) hoặc `dotnet user-secrets` (chạy `dotnet user-secrets init` một lần cho project):
-   - `ConnectionStrings:DefaultConnection` = `Host=localhost;Port=5433;Database=parking_db;Username=parking_svc;Password=<SERVICE_DB_PASSWORD>`
+   - `ConnectionStrings:DefaultConnection` = `Host=localhost;Port=5433;Database=parking_system;Username=app_svc;Password=<SERVICE_DB_PASSWORD>`
    - `MessageBrokerSettings:HostName` = `localhost`, cùng `MessageBrokerSettings:UserName` và `MessageBrokerSettings:Password` như `RABBITMQ_USER` và `RABBITMQ_PASSWORD` trong `.env`. Riêng parking thêm `Mqtt:Host` = `localhost`, `Mqtt:Username`, `Mqtt:Password`.
    - `Jwt:PublicKey` như `JWT_PUBLIC_KEY` trong `.env`. Booking cần `Grpc:Parking` và `Grpc:Payment` (đã có trong `appsettings.Development.json`).
    - Service không có giá trị mặc định cho các khóa trên: thiếu khóa nào thì dừng ngay khi khởi động.
@@ -227,7 +227,7 @@ Phiên bản gói ghi ở `Directory.Packages.props`. Giữ các bản mã ngu�
 
 ## 11. Lưu ý
 
-- **RAM:** cả hệ thống khoảng 12 container, nên có 16 GB. Máy 8 GB thì chỉ bật service đang làm.
+- **RAM:** mặc định chỉ 5 container. Bật thêm profile nào thì tốn thêm phần đó; `--profile full` chạy tất cả (khoảng 11 container).
 - **IPN của VNPay cần URL công khai:** địa chỉ `https://<tên miền>/api/payment/vnpay/ipn` khai báo trong trang quản trị merchant của VNPay. Lúc dev dùng tunnel (Cloudflare Tunnel hoặc ngrok).
 - **OSRM:** máy chủ demo công khai có giới hạn truy cập. Gọi nhiều thì cache kết quả hoặc tự chạy OSRM bằng Docker.
 - **Máy ảo demo công khai:** file compose đã chỉ mở các cổng dev trên `127.0.0.1`. Ở tường lửa của máy ảo chỉ mở cổng gateway (8088, hoặc 80/443 qua reverse proxy); mở thêm 1883 khi có camera thật gửi từ nơi khác. Aspire Dashboard đang tắt đăng nhập nên không được đưa ra Internet.
@@ -259,9 +259,9 @@ dotnet ef migrations add <TenMigration> --project services/<tên>/<Tên>.Persist
 
 Mỗi service có một test (`Migrations_WhenModelChanged_AreUpToDate`) báo lỗi khi mô hình thay đổi mà chưa có migration.
 
-Database dev được tạo trước đây bằng `EnsureCreated` không có bảng `__EFMigrationsHistory`, nên migration đầu tiên sẽ báo bảng đã tồn tại. Tạo lại một lần (dữ liệu dev chỉ là dữ liệu mẫu):
+Database dev tạo bằng bản cũ (mỗi service một database, hoặc `EnsureCreated` không có bảng `__EFMigrationsHistory`) không dùng được với bản này. Tạo lại một lần (dữ liệu dev chỉ là dữ liệu mẫu):
 
 ```
-docker compose down -v
+docker compose --profile full down -v
 docker compose up --build
 ```

@@ -25,19 +25,19 @@ Trình duyệt (Next.js, cổng 3000)
       ▼
 API Gateway (YARP, cổng 8088) ── kiểm tra JWT, chuyển request
       │
-      ├── identity ────────────► identity_db
-      ├── parking ─────────────► parking_db     ◄── MQTT ── camera giả lập
+      ├── identity ────────────► schema identity
+      ├── parking ─────────────► schema parking   ◄── MQTT ── camera giả lập
       ├── booking ─ gRPC ─────► parking (GetLotSlots, AssignSlot)
       │           └ gRPC ─────► payment (CheckDebt)
-      ├── payment ─────────────► payment_db
-      ├── notification ────────► notification_db
+      ├── payment ─────────────► schema payment
+      ├── notification ────────► schema notification
       └── ai (Python) ◄── RabbitMQ (sự kiện SlotStatusChanged)
 
 RabbitMQ: sự kiện giữa các service (MassTransit) và MQTT cho camera (plugin, cổng 1883)
-PostgreSQL: một container, mỗi service một database riêng
+PostgreSQL: một container, một database `parking_system`, mỗi service một schema riêng
 ```
 
-Nguyên tắc: trình duyệt chỉ gọi gateway. Service không truy vấn database của service khác; cần dữ liệu thì gọi gRPC hoặc nghe sự kiện.
+Nguyên tắc: trình duyệt chỉ gọi gateway. Service chỉ làm việc trong schema của mình và không truy vấn schema của service khác; cần dữ liệu thì gọi gRPC hoặc nghe sự kiện.
 
 **Luồng chạy thật hiện có** (camera → sơ đồ 3D):
 
@@ -74,7 +74,7 @@ Nguyên tắc: trình duyệt chỉ gọi gateway. Service không truy vấn dat
 | Sự kiện | RabbitMQ 4 + MassTransit 8.5.10 (outbox và inbox trên EF Core) |
 | Camera | MQTT: plugin MQTT của RabbitMQ; thư viện MQTTnet 5.2 ở parking |
 | Thời gian thực | SignalR |
-| Log, trace | Serilog, OpenTelemetry, Aspire Dashboard 13 |
+| Log, trace | Serilog, OpenTelemetry, Aspire Dashboard 13 (tùy chọn) |
 | Service AI | Python 3.12, FastAPI 0.141, uvicorn, aio-pika, grpcio |
 | Frontend | Next.js 16.3, React 19, TypeScript, Tailwind CSS 4, Three.js, `@microsoft/signalr` |
 | Test | xUnit, pytest, Jest |
@@ -166,18 +166,18 @@ Project dùng chung `shared/ParkingSystem.ServiceDefaults` gọi trong `Program.
 
 ## 8. Cơ sở dữ liệu
 
-- **PostgreSQL 17**, một container cho cả hệ thống, mỗi service một database và một tài khoản riêng: `identity_db`, `parking_db`, `booking_db`, `payment_db`, `notification_db` (và `ai_db`, tạo sẵn nhưng service AI không dùng). Tài khoản `<tên>_svc` dùng mật khẩu `SERVICE_DB_PASSWORD`; tài khoản quản trị `postgres` dùng `POSTGRES_PASSWORD`. Script tạo: `deploy/postgres/init-db.sh` (chỉ chạy khi volume `pgdata` còn trống).
+- **PostgreSQL 17**, một container, **một database `parking_system`** và một tài khoản `app_svc` (mật khẩu `SERVICE_DB_PASSWORD`; tài khoản quản trị `postgres` dùng `POSTGRES_PASSWORD`). Mỗi service làm việc trong **schema riêng**: `identity`, `parking`, `booking`, `payment`, `notification`. Bảng, bảng outbox/inbox của MassTransit và `__EFMigrationsHistory` của service nằm trong schema đó nên không trùng tên với service khác. Script tạo: `deploy/postgres/init-db.sh` (chỉ chạy khi volume `pgdata` còn trống).
 - **Truy cập từ máy host:** `localhost:5433` (không dùng 5432 vì hay bị PostgreSQL cài sẵn chiếm).
 - **Bảng hiện có:**
 
-| Database | Bảng |
+| Schema | Bảng |
 |---|---|
-| `identity_db` | `users`, `user_accounts`, `user_account_sessions`, `old_passwords` |
-| `parking_db` | `SlotStates` (trạng thái mới nhất của từng chỗ) |
-| `booking_db`, `payment_db`, `notification_db` | chưa có bảng nghiệp vụ |
-| tất cả | `InboxState`, `OutboxMessage`, `OutboxState` (MassTransit), `__EFMigrationsHistory` |
+| `identity` | `users`, `user_accounts`, `user_account_sessions`, `old_passwords` |
+| `parking` | `SlotStates` (trạng thái mới nhất của từng chỗ) |
+| `booking`, `payment`, `notification` | chưa có bảng nghiệp vụ |
+| mỗi schema | `InboxState`, `OutboxMessage`, `OutboxState` (MassTransit), `__EFMigrationsHistory` |
 
-  Entity `Reservation` (booking) và `ParkingSlot` (parking) đã có ở `Domain` nhưng chưa ánh xạ thành bảng.
+  Entity `Reservation` (booking) và `ParkingSlot` (parking) đã có ở `Domain` nhưng chưa ánh xạ thành bảng. Service AI không dùng database.
 - **Migration** nằm ở `X.Persistence/Migrations`, tự chạy khi service khởi động ở chế độ Development (`MigrateDatabase`). Thêm migration mới:
 
 ```
@@ -186,7 +186,6 @@ dotnet ef migrations add <TenMigration> --project services/<tên>/<Tên>.Persist
 
   Cài công cụ một lần: `dotnet tool install -g dotnet-ef`. Mỗi service có một test báo lỗi khi mô hình đổi mà chưa có migration.
 - **Chuỗi kết nối** đọc từ khóa `ConnectionStrings:DefaultConnection`; thiếu thì service dừng khi khởi động.
-- **Redis:** có một container `redis` trong compose nhưng chưa có code nào dùng.
 
 ## 9. Cổng và địa chỉ
 
@@ -194,11 +193,11 @@ dotnet ef migrations add <TenMigration> --project services/<tên>/<Tên>.Persist
 |---|---|
 | `http://localhost:8088` | Gateway. `/health` kiểm tra sống |
 | `http://localhost:3000` | Frontend |
-| `http://localhost:18888` | Aspire Dashboard (log, trace, metrics) |
+| `http://localhost:18888` | Aspire Dashboard (log, trace, metrics), profile `observability` |
 | `http://localhost:15672` | RabbitMQ management (tài khoản `RABBITMQ_USER`) |
 | `localhost:5433` | PostgreSQL |
 | `localhost:5672` | RabbitMQ AMQP (cho service chạy ngoài Docker) |
-| `localhost:18889` | Aspire OTLP (cho service chạy ngoài Docker) |
+| `localhost:18889` | Aspire OTLP (cho service chạy ngoài Docker), profile `observability` |
 | `:1883` | MQTT, camera trong mạng LAN gửi vào đây |
 | `8080`, `8081` trong container | REST và SignalR (8080); gRPC (8081, parking, payment, ai) |
 
@@ -210,7 +209,7 @@ Các cổng dev (5433, 5672, 15672, 18888, 18889) chỉ mở trên `127.0.0.1`; 
 
 | Biến | Ý nghĩa |
 |---|---|
-| `POSTGRES_PASSWORD`, `SERVICE_DB_PASSWORD` | Mật khẩu PostgreSQL |
+| `POSTGRES_PASSWORD`, `SERVICE_DB_PASSWORD` | Mật khẩu quản trị PostgreSQL; mật khẩu tài khoản `app_svc` của các service |
 | `RABBITMQ_USER`, `RABBITMQ_PASSWORD` | RabbitMQ, dùng luôn cho MQTT |
 | `JWT_PUBLIC_KEY` | Khóa công khai RS256 (base64 DER, một dòng) để gateway và service kiểm tra token |
 | `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`, `PUBLIC_BASE_URL` | Dành cho payment, chưa có code dùng |
@@ -224,7 +223,7 @@ Các cổng dev (5433, 5672, 15672, 18888, 18889) chỉ mở trên `127.0.0.1`; 
 
 ## 11. Chạy dự án
 
-Cần: Docker Desktop, .NET SDK 10, Node.js 20.9 trở lên, máy nên có 16 GB RAM (cả hệ thống khoảng 12 container).
+Cần: Docker Desktop, .NET SDK 10, Node.js 20.9 trở lên. Mặc định chỉ chạy 5 container (postgres, rabbitmq, gateway, parking, booking); các phần còn lại bật bằng profile. Bộ nhớ đo ngày 30/09/2026: 5 container lõi cùng camera giả lập khoảng 0,5 GB; đủ 11 container (`--profile full`) khoảng 0,84 GB (chưa tính máy ảo của Docker Desktop).
 
 **Backend**
 
@@ -234,7 +233,7 @@ cp ../.env.example .env        # điền giá trị; JWT_PUBLIC_KEY lấy từ g
 docker compose --profile sim up --build
 ```
 
-`--profile sim` bật thêm camera giả lập. Kiểm tra: `http://localhost:8088/health`, `http://localhost:8088/api/booking/lots/00000000-0000-0000-0000-000000000001/availability`, `http://localhost:8088/api/ai/events/recent`.
+Không có profile thì chỉ chạy 5 container lõi. Profile bật thêm: `sim` (camera giả lập), `ai` (service AI), `observability` (Aspire Dashboard, cần đặt thêm `OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889` trong `.env`), `full` (tất cả, kể cả identity, payment, notification vốn còn trống). Kiểm tra: `http://localhost:8088/health`, `http://localhost:8088/api/booking/lots/00000000-0000-0000-0000-000000000001/availability`, `http://localhost:8088/api/ai/events/recent` (cần profile `ai` và `sim`).
 
 **Frontend**
 
@@ -271,7 +270,7 @@ Mở `http://localhost:3000`: sơ đồ 10 chỗ đổi màu theo tin từ camer
 |---|---|
 | Service dừng khi khởi động, log nói thiếu một khóa cấu hình | Điền khóa đó vào `deploy/.env` (hoặc user-secrets khi chạy ngoài Docker) |
 | Log `Failed executing DbCommand ... __EFMigrationsHistory` lúc service lên lần đầu | Bình thường: EF kiểm tra bảng lịch sử migration chưa có rồi tạo nó |
-| Migration báo bảng đã tồn tại | Database tạo bằng bản cũ (`EnsureCreated`). Chạy `docker compose down -v` rồi `up --build` (mất dữ liệu dev, chỉ là dữ liệu mẫu) |
+| Migration báo bảng đã tồn tại, hoặc không thấy database `parking_system` | Volume dữ liệu do bản cũ tạo (mỗi service một database, hoặc `EnsureCreated`). Chạy `docker compose --profile full down -v` rồi `up --build` (mất dữ liệu dev, chỉ là dữ liệu mẫu) |
 | Cổng 8080 hoặc 5432 bị chiếm | Không sao: dự án dùng 8088 và 5433 |
 | Docker báo lỗi I/O hoặc không build được | Kiểm tra ổ đĩa còn trống; nếu ổ C: đầy, chuyển dữ liệu Docker sang ổ khác ở Settings → Resources → Advanced |
 | Sơ đồ 3D không đổi màu | Chưa bật `--profile sim` (không có camera giả lập), hoặc gateway chưa chạy (`/health`) |
