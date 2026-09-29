@@ -28,9 +28,13 @@ public class MqttSlotListener(
         using var client = new MqttClientFactory().CreateMqttClient();
         client.ApplicationMessageReceivedAsync += e => HandleAsync(e.ApplicationMessage, stoppingToken);
 
+        // No defaults: a missing setting stops the service at startup instead of connecting as guest
+        var host = configuration["Mqtt:Host"] ?? throw new InvalidOperationException("Mqtt:Host is not configured.");
+        var username = configuration["Mqtt:Username"] ?? throw new InvalidOperationException("Mqtt:Username is not configured.");
+        var password = configuration["Mqtt:Password"] ?? throw new InvalidOperationException("Mqtt:Password is not configured.");
         var options = new MqttClientOptionsBuilder()
-            .WithTcpServer(configuration["Mqtt:Host"] ?? "localhost", 1883)
-            .WithCredentials(configuration["Mqtt:Username"] ?? "guest", configuration["Mqtt:Password"] ?? "guest")
+            .WithTcpServer(host, 1883)
+            .WithCredentials(username, password)
             .WithClientId("parking-service")
             .Build();
 
