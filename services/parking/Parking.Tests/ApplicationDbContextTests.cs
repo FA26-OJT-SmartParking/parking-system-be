@@ -18,4 +18,15 @@ public class ApplicationDbContextTests
         Assert.Contains("OutboxMessage", tables);
         Assert.Contains("OutboxState", tables);
     }
+
+    [Fact]
+    public void Migrations_WhenModelChanged_AreUpToDate()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql("Host=localhost").Options;
+        using var db = new ApplicationDbContext(options);
+
+        // Fails when someone changes an entity or its mapping without adding a migration (dotnet ef migrations add)
+        Assert.NotEmpty(db.Database.GetMigrations());
+        Assert.False(db.Database.HasPendingModelChanges());
+    }
 }

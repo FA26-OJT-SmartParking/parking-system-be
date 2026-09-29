@@ -105,16 +105,16 @@ public static class ServiceDefaultsExtensions
     }
 
     /// <summary>
-    /// Creates the tables on startup when running in Development.
-    /// Switch to EF Core migrations once the service has real business tables.
+    /// Applies the EF Core migrations of <typeparamref name="TDbContext"/> on startup in Development.
+    /// Elsewhere, run them as a deployment step (dotnet ef database update) before the new version starts.
     /// </summary>
-    public static WebApplication EnsureDatabaseCreated<TDbContext>(this WebApplication app)
+    public static WebApplication MigrateDatabase<TDbContext>(this WebApplication app)
         where TDbContext : DbContext
     {
         if (app.Environment.IsDevelopment())
         {
             using var scope = app.Services.CreateScope();
-            scope.ServiceProvider.GetRequiredService<TDbContext>().Database.EnsureCreated();
+            scope.ServiceProvider.GetRequiredService<TDbContext>().Database.Migrate();
         }
         return app;
     }
