@@ -240,14 +240,14 @@ Trong `Downloads` có 3 tài liệu khác nhau về nghiệp vụ và kỹ thu�
 | Điểm | Khung hiện tại | SRS v1.1 |
 |---|---|---|
 | Broker MQTT | Plugin MQTT của RabbitMQ | Mosquitto (DP-05, HW-04); SRS không nhắc RabbitMQ |
-| JWT | HS256, một khóa dùng chung | RS256, Identity giữ khóa riêng, service kiểm tra bằng khóa công khai (NFR-SEC-003) |
+| JWT | RS256, Identity giữ khóa riêng, service kiểm tra bằng khóa công khai (nhóm chọn ngày 29/09/2026, chờ mentor xác nhận) | RS256, Identity giữ khóa riêng, service kiểm tra bằng khóa công khai (NFR-SEC-003) |
 | Bản đồ và ETA | OSRM | Google Maps Platform (DP-02) |
 | Thanh toán | VNPay | VNPay Sandbox và MoMo Sandbox khi demo (DP-04) |
 | Đặt chỗ | 2 loại, cọc cố định | BOOKING trả trước 100%, HOLD cọc 30% |
 | Quy tắc BR | BR-01 đến BR-24 (theo v10, thiếu BR-03) | BR-01 đến BR-20; một số mã trùng số nhưng khác nghĩa |
 | Route công khai của gateway | `/hubs/**`, `/api/ai/**` mở hoàn toàn | SRS không nêu route nào; chỉ có giới hạn tần suất 100 request/phút mỗi người dùng và 60 mỗi IP chưa đăng nhập (NFR-SEC-006) |
 
-Trong lúc chờ, chỉ làm phần không phụ thuộc các điểm trên (cấu trúc 5 tầng, gRPC, hạ tầng, FE).
+Trong lúc chờ, chỉ làm phần không phụ thuộc các điểm trên (cấu trúc theo mẫu, gRPC, hạ tầng, FE).
 
 ## 13. Lưu ý khi đổi mô hình dữ liệu
 
