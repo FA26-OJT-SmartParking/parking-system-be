@@ -1,6 +1,6 @@
 # Hướng dẫn setup microservices
 
-Hệ thống tìm & quản lý bãi đỗ xe thông minh (3D + AI), dự án OJT 3 tháng. Kiến trúc: microservices, gọi nhau bằng gRPC (mentor yêu cầu), sự kiện qua RabbitMQ, mỗi service một database, mỗi service chia 5 tầng như `SEAL.*` của các dự án SWP, chạy bằng Docker Compose.
+Hệ thống tìm & quản lý bãi đỗ xe thông minh (3D + AI), dự án OJT 3 tháng. Kiến trúc: microservices, gọi nhau bằng gRPC (mentor yêu cầu), sự kiện qua RabbitMQ, mỗi service một database, mỗi service theo cấu trúc của mẫu `Project.CleanArchitecture` do mentor cấp (Domain, Application, Infrastructure, Persistence, WebAPI), chạy bằng Docker Compose.
 
 > **Lưu ý (29/09):** nhiều điểm kỹ thuật và nghiệp vụ còn phụ thuộc tài liệu nào là nguồn chuẩn (xem mục 12). Khung hiện tại bám `context_v10.docx`.
 
@@ -144,10 +144,11 @@ parking-system-be/
 ├─ gateway/Gateway/                          # YARP
 ├─ services/
 │  ├─ identity|parking|booking|payment|notification/
-│  │  ├─ <Tên>.Domain/                       # entity, quy tắc nghiệp vụ (không phụ thuộc gì)
-│  │  ├─ <Tên>.Application/                  # Features (use case), Interfaces, Exceptions
-│  │  ├─ <Tên>.Infrastructure/               # EF Core, gRPC client, MQTT, RabbitMQ consumer
-│  │  ├─ <Tên>.WebAPI/                          # Program.cs, Controllers, gRPC server, SignalR hub
+│  │  ├─ <Tên>.Domain/                       # Base (BaseEntity), Entities, Enum (không phụ thuộc gì)
+│  │  ├─ <Tên>.Application/                  # Usecase (Command/Query, Handler, Validator), DTOs, Common (Behaviors, Interfaces, Models, Mappers), Resources.resx
+│  │  ├─ <Tên>.Infrastructure/               # GRPC (Client, Services, Interceptors), MessageBroker (MassTransit), Consumers
+│  │  ├─ <Tên>.Persistence/                  # ApplicationDbContext, EntityTypeConfigurations, Repositories, UnitOfWork, Migrations
+│  │  ├─ <Tên>.WebAPI/                       # Program.cs, Controllers, Middleware, Swagger; parking thêm SignalR hub và worker MQTT
 │  │  ├─ <Tên>.Tests/                        # xUnit
 │  │  └─ Dockerfile                          # build context là gốc repo
 │  └─ ai/                                    # Python FastAPI + gRPC
@@ -163,7 +164,7 @@ parking-system-be/
 └─ .env.example
 ```
 
-Chiều phụ thuộc của mỗi service: `API → Infrastructure → Application → Domain`. `Application` chỉ khai báo interface (ví dụ `IParkingClient`, `ISlotStateStore`), `Infrastructure` cài đặt chúng; `API` ghép tất cả trong `Program.cs`. Consumer RabbitMQ đặt trong `Infrastructure` (MassTransit quét assembly chứa DbContext).
+Chiều phụ thuộc của mỗi service: `WebAPI → Infrastructure → Persistence → Application → Domain`. `Application` chỉ khai báo interface (ví dụ `IUnitOfGrpc`, `IUnitOfWork`, `IEventPublisher`), `Persistence` và `Infrastructure` cài đặt chúng; `WebAPI` ghép tất cả trong `Program.cs`. Mỗi request đi qua MediatR: controller gửi Command hoặc Query, `ValidationBehavior` chạy các validator (FluentValidation) rồi mới tới handler; lỗi được `ExceptionHandlingMiddleware` đổi thành phản hồi chuẩn `{ result, isSuccess, statusCode, message }` của API Design Template. Phần map DTO viết tay (không dùng AutoMapper). Consumer RabbitMQ đặt trong `Infrastructure/Consumers` (MassTransit quét assembly Infrastructure). Các điểm khác mẫu và lý do: `docs/template-deviations.md`.
 
 ## 7. Chạy trên máy
 
@@ -174,7 +175,7 @@ Chiều phụ thuộc của mỗi service: `API → Infrastructure → Applicati
      Start-Process '.\Docker Desktop Installer.exe' -Wait -ArgumentList 'install','--accept-license','--installation-dir=F:\Docker\Desktop','--wsl-default-data-root=F:\Docker\wsl'
      ```
    - Đã cài vào ổ C: rồi thì chuyển dữ liệu ở Settings → Resources → Advanced → Disk image location.
-2. Tại thư mục `deploy`, chép `../.env.example` thành `.env` rồi điền giá trị (`JWT_SIGNING_KEY` dài ít nhất 32 ký tự).
+2. Tại thư mục `deploy`, chép `../.env.example` thành `.env` rồi điền giá trị (chạy `bash generate-jwt-keys.sh` trong thư mục `deploy` để lấy `JWT_PUBLIC_KEY`).
 3. `docker compose up --build`. Thêm `--profile sim` để chạy trình giả lập camera.
 4. Kiểm tra (trên máy host, gateway dùng cổng 8088 và PostgreSQL dùng 5433 để không trùng phần mềm cài sẵn hay chiếm 8080 và 5432):
    - Gateway: `http://localhost:8088/health`
@@ -188,9 +189,10 @@ Chạy một service .NET ngoài Docker để debug, ví dụ parking:
 
 1. `docker compose stop parking` để container của service đó không chạy song song.
 2. Đặt cấu hình bằng biến môi trường (dùng `__` thay cho `:`) hoặc `dotnet user-secrets` (chạy `dotnet user-secrets init` một lần cho project):
-   - `ConnectionStrings:Db` = `Host=localhost;Port=5433;Database=parking_db;Username=parking_svc;Password=<SERVICE_DB_PASSWORD>`
-   - `RabbitMq:Host` = `localhost`, cùng `RabbitMq:Username` và `RabbitMq:Password` như trong `.env`. Riêng parking thêm `Mqtt:Host` = `localhost`, `Mqtt:Username`, `Mqtt:Password`.
-   - `Jwt:SigningKey` như trong `.env`. Thiếu khóa này thì service dừng ngay khi khởi động.
+   - `ConnectionStrings:DefaultConnection` = `Host=localhost;Port=5433;Database=parking_db;Username=parking_svc;Password=<SERVICE_DB_PASSWORD>`
+   - `MessageBrokerSettings:HostName` = `localhost`, cùng `MessageBrokerSettings:UserName` và `MessageBrokerSettings:Password` như `RABBITMQ_USER` và `RABBITMQ_PASSWORD` trong `.env`. Riêng parking thêm `Mqtt:Host` = `localhost`, `Mqtt:Username`, `Mqtt:Password`.
+   - `Jwt:PublicKey` như `JWT_PUBLIC_KEY` trong `.env`. Booking cần `Grpc:Parking` và `Grpc:Payment` (đã có trong `appsettings.Development.json`).
+   - Service không có giá trị mặc định cho các khóa trên: thiếu khóa nào thì dừng ngay khi khởi động.
    - `OTEL_EXPORTER_OTLP_ENDPOINT` = `http://localhost:18889` nếu muốn xem log và trace trên Aspire Dashboard.
 3. `dotnet run --project services/parking/Parking.WebAPI`, rồi gọi thẳng service ở cổng nó in ra. Gateway trong Docker vẫn trỏ tới container, nên request qua gateway không tới bản đang debug.
 
@@ -199,17 +201,18 @@ Chạy một service .NET ngoài Docker để debug, ví dụ parking:
 Mỗi service .NET chỉ cần vài dòng trong `Program.cs`:
 
 - `builder.AddServiceDefaults("<tên>")`: Serilog; OpenTelemetry cho trace và metrics; log, trace, metrics gửi về Aspire Dashboard khi có `OTEL_EXPORTER_OTLP_ENDPOINT`; health check; JWT.
-- `builder.AddMessaging<TDb>()`: MassTransit + RabbitMQ, outbox và inbox trên DbContext của service. Consumer đặt trong project `Infrastructure` của service được đăng ký tự động.
-- `app.UseServiceDefaults()`: log request, xác thực, phân quyền, endpoint `/health`.
-- `app.EnsureDatabaseCreated<TDb>()`: tự tạo bảng khi chạy Development. Khi service có bảng nghiệp vụ thật thì chuyển sang EF Core migrations.
+- `app.UseServiceDefaults(...)`: log request, (middleware lỗi của service nếu truyền vào), xác thực, phân quyền, endpoint `/health`. Lỗi 401 và 403 trả cùng dạng phản hồi chuẩn.
+- `app.MigrateDatabase<ApplicationDbContext>()`: chạy các migration còn thiếu khi ở Development. Ở môi trường khác, chạy `dotnet ef database update` như một bước triển khai.
 
-Phiên bản gói ghi ở `Directory.Packages.props`. MassTransit giữ bản 8 (mã nguồn mở); từ bản 9 là bản thương mại.
+MassTransit (RabbitMQ, outbox và inbox) được đăng ký trong `Infrastructure` của từng service từ mục `MessageBrokerSettings`, như mẫu.
+
+Phiên bản gói ghi ở `Directory.Packages.props`. Giữ các bản mã nguồn mở: MassTransit 8.5.10 (từ bản 9 là bản thương mại) và MediatR 12.5.0 (từ bản 13 là bản thương mại). Không dùng AutoMapper: bản MIT mới nhất (14.0.0) có advisory GHSA-rvv3-g6hj-g44x và bản đã vá là bản thương mại.
 
 ## 9. Quy ước chung
 
 - .NET 10 (LTS), PostgreSQL 17, RabbitMQ 4. Python trong container là 3.12; máy dev có 3.10 trở lên cũng chạy test được.
 - Tiền lưu bằng số nguyên (đồng). Thời gian lưu theo UTC, hiển thị theo giờ Việt Nam; quy tắc 22:00 (BR-04) tính theo giờ Việt Nam.
-- JWT do identity ký (HS256, khóa ở `.env`); gateway và từng service đều kiểm tra.
+- JWT ký bằng RS256 (NFR-SEC-003): gateway và từng service chỉ có khóa công khai để kiểm tra. Chưa có service nào cấp token vì đăng nhập chưa làm (nghiệp vụ chưa xong). SRS quy định access token 24 giờ, refresh token 7 ngày, mật khẩu băm bcrypt cost 12 (NFR-SEC-001).
 - Không commit khóa thật: `.env` nằm trong `.gitignore`, chỉ commit `.env.example`. Khóa VNPay chỉ có ở payment.
 - Gói NuGet mặc định lưu ở ổ C:. Muốn chuyển sang ổ khác thì đặt biến môi trường `NUGET_PACKAGES`, ví dụ `F:\dev\nuget-packages`.
 - Git, commit, pull request: xem `docs/workflow.md`.
@@ -248,12 +251,17 @@ Trong lúc chờ, chỉ làm phần không phụ thuộc các điểm trên (c�
 
 ## 13. Lưu ý khi đổi mô hình dữ liệu
 
-Trong môi trường dev, service tự tạo bảng bằng `EnsureCreated`. Lệnh này **không thêm bảng vào database đã có**. Khi thêm hoặc đổi bảng, tạo lại database của service (dữ liệu dev chỉ là dữ liệu mẫu). Ví dụ với parking:
+Bảng do EF Core migrations tạo, nằm trong `<Tên>.Persistence/Migrations`. Khi sửa entity hoặc cách ánh xạ, thêm một migration (cài công cụ một lần: `dotnet tool install -g dotnet-ef`):
 
 ```
-docker compose exec postgres psql -U postgres -c "DROP DATABASE parking_db WITH (FORCE)"
-docker compose exec postgres psql -U postgres -c "CREATE DATABASE parking_db OWNER parking_svc"
-docker compose restart parking
+dotnet ef migrations add <TenMigration> --project services/<tên>/<Tên>.Persistence --startup-project services/<tên>/<Tên>.Persistence --output-dir Migrations
 ```
 
-Khi service có dữ liệu thật thì chuyển sang EF Core migrations, không xóa database.
+Mỗi service có một test (`Migrations_WhenModelChanged_AreUpToDate`) báo lỗi khi mô hình thay đổi mà chưa có migration.
+
+Database dev được tạo trước đây bằng `EnsureCreated` không có bảng `__EFMigrationsHistory`, nên migration đầu tiên sẽ báo bảng đã tồn tại. Tạo lại một lần (dữ liệu dev chỉ là dữ liệu mẫu):
+
+```
+docker compose down -v
+docker compose up --build
+```

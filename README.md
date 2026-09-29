@@ -18,7 +18,7 @@ This repository holds the backend. The web app is in [parking-system-fe](https:/
 
 | Part | Technology |
 |---|---|
-| Backend | ASP.NET Core (.NET 10) microservices, one layered solution per service (Domain, Application, Infrastructure, API, Tests), YARP gateway, SignalR |
+| Backend | ASP.NET Core (.NET 10) microservices, one solution per service in the layout of the mentor's `Project.CleanArchitecture` template (Domain, Application, Infrastructure, Persistence, WebAPI, Tests), MediatR and FluentValidation, YARP gateway, SignalR |
 | AI | Python 3.12, FastAPI |
 | Service calls | gRPC (contracts in `grpc_proto/`) |
 | Messaging | RabbitMQ with MassTransit 8 (outbox/inbox); RabbitMQ MQTT plugin for cameras |
@@ -47,6 +47,7 @@ Fill in `deploy/.env` before starting. Add `--profile sim` to `docker compose up
 |---|---|
 | http://localhost:8088/health | Gateway health |
 | http://localhost:8088/api/ai/events/recent | Last slot events received by the AI service (sample flow) |
+| http://localhost:8088/api/booking/lots/{lotId}/availability | Free and occupied slots of a lot (public) |
 | http://localhost:18888 | Aspire Dashboard: logs, traces, metrics |
 | http://localhost:15672 | RabbitMQ management |
 
@@ -57,7 +58,7 @@ Fill in `deploy/.env` before starting. Add `--profile sim` to `docker compose up
 | `POSTGRES_PASSWORD` | PostgreSQL superuser password |
 | `SERVICE_DB_PASSWORD` | Password of the per-service database logins |
 | `RABBITMQ_USER`, `RABBITMQ_PASSWORD` | RabbitMQ user, also used by MQTT clients |
-| `JWT_SIGNING_KEY` | JWT signing key, at least 32 characters |
+| `JWT_PUBLIC_KEY` | RS256 public key (base64 DER, one line); the gateway and every service check tokens with it. `deploy/generate-jwt-keys.sh` prints a key pair |
 | `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` | VNPay merchant credentials (payment service only) |
 | `PUBLIC_BASE_URL` | Frontend URL used for the VNPay return page |
 | `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` | Email sending (notification service) |
@@ -86,7 +87,7 @@ pytest
 | `shared/` | `ParkingSystem.Contracts` (RabbitMQ events) and `ParkingSystem.ServiceDefaults` (logging, tracing, health, JWT, messaging for every .NET service) |
 | `tests/` | Integration tests that run real gRPC between services in memory |
 | `gateway/` | YARP API gateway |
-| `services/<name>/` | identity, parking, booking, payment, notification (`*.Domain`, `*.Application`, `*.Infrastructure`, `*.WebAPI`, `*.Tests`, `Dockerfile`) and `ai` (Python, FastAPI + gRPC) |
+| `services/<name>/` | identity, parking, booking, payment, notification (`*.Domain`, `*.Application`, `*.Infrastructure`, `*.Persistence`, `*.WebAPI`, `*.Tests`, `Dockerfile`) and `ai` (Python, FastAPI + gRPC) |
 | `edge/camera-simulator/` | Publishes fake zone-camera readings over MQTT |
 | `deploy/` | Docker Compose stack, database init script, RabbitMQ plugins |
 | `docs/` | Setup guide and team workflow (Vietnamese) |
