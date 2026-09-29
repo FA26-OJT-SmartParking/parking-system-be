@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Parking.API\Parking.API.csproj" />
+    <ProjectReference Include="..\Parking.WebAPI\Parking.WebAPI.csproj" />
   </ItemGroup>
 
 </Project>

@@ -4,7 +4,7 @@ Smart parking finder and management platform with a 3D lot view and AI recommend
 
 This repository holds the backend. The web app is in [parking-system-fe](https://github.com/FA26-OJT-SmartParking/parking-system-fe).
 
-> Status: project skeleton. Each service is split into Domain, Application, Infrastructure, API and Tests layers. Two sample flows exist: camera simulator → parking → RabbitMQ → ai, and booking → parking over gRPC (`GET /api/booking/lots/{lotId}/availability`). Some business and technical choices wait for the team to confirm the source-of-truth document, see `docs/huong-dan-setup-microservices.md` section 12.
+> Status: project skeleton. Each service is split into Domain, Application, Infrastructure, Persistence, WebAPI and Tests projects. Two sample flows exist: camera simulator → parking → RabbitMQ → ai, and booking → parking over gRPC (`GET /api/booking/lots/{lotId}/availability`). No business features yet: several business rules still conflict between the source documents, see `docs/quyet-dinh-nghiep-vu.md`.
 
 ## Planned features
 
@@ -18,12 +18,12 @@ This repository holds the backend. The web app is in [parking-system-fe](https:/
 
 | Part | Technology |
 |---|---|
-| Backend | ASP.NET Core (.NET 10) microservices, one layered solution per service (Domain, Application, Infrastructure, API, Tests), YARP gateway, SignalR |
+| Backend | ASP.NET Core (.NET 10) microservices, one solution per service in the layout of the mentor's `Project.CleanArchitecture` template (Domain, Application, Infrastructure, Persistence, WebAPI, Tests), MediatR and FluentValidation, YARP gateway, SignalR |
 | AI | Python 3.12, FastAPI |
 | Service calls | gRPC (contracts in `grpc_proto/`) |
 | Messaging | RabbitMQ with MassTransit 8 (outbox/inbox); RabbitMQ MQTT plugin for cameras |
-| Data | PostgreSQL 17 (one database per service), Redis |
-| Observability | Serilog, OpenTelemetry, Aspire Dashboard |
+| Data | PostgreSQL 17: one database, one schema per service |
+| Observability | Serilog, OpenTelemetry, Aspire Dashboard (optional) |
 | Frontend | Next.js + React + Three.js, separate repository [parking-system-fe](https://github.com/FA26-OJT-SmartParking/parking-system-fe) |
 | Run | Docker Compose |
 
@@ -41,13 +41,14 @@ cp ../.env.example .env
 docker compose up --build
 ```
 
-Fill in `deploy/.env` before starting. Add `--profile sim` to `docker compose up` to start the camera simulator.
+Fill in `deploy/.env` before starting. By default only the core stack runs (postgres, rabbitmq, gateway, parking, booking). Add `--profile sim` for the camera simulator, `--profile ai` for the AI service, `--profile observability` for the Aspire Dashboard (also set `OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889` in `.env`), or `--profile full` for everything.
 
 | URL | What |
 |---|---|
 | http://localhost:8088/health | Gateway health |
-| http://localhost:8088/api/ai/events/recent | Last slot events received by the AI service (sample flow) |
-| http://localhost:18888 | Aspire Dashboard: logs, traces, metrics |
+| http://localhost:8088/api/ai/events/recent | Last slot events received by the AI service (profiles `ai` and `sim`) |
+| http://localhost:8088/api/booking/lots/{lotId}/availability | Free and occupied slots of a lot (public) |
+| http://localhost:18888 | Aspire Dashboard: logs, traces, metrics (profile `observability`) |
 | http://localhost:15672 | RabbitMQ management |
 
 ## Configuration (`deploy/.env`)
@@ -55,9 +56,9 @@ Fill in `deploy/.env` before starting. Add `--profile sim` to `docker compose up
 | Variable | Meaning |
 |---|---|
 | `POSTGRES_PASSWORD` | PostgreSQL superuser password |
-| `SERVICE_DB_PASSWORD` | Password of the per-service database logins |
+| `SERVICE_DB_PASSWORD` | Password of the database login `app_svc` |
 | `RABBITMQ_USER`, `RABBITMQ_PASSWORD` | RabbitMQ user, also used by MQTT clients |
-| `JWT_SIGNING_KEY` | JWT signing key, at least 32 characters |
+| `JWT_PUBLIC_KEY` | RS256 public key (base64 DER, one line); the gateway and every service check tokens with it. `deploy/generate-jwt-keys.sh` prints a key pair |
 | `VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET` | VNPay merchant credentials (payment service only) |
 | `PUBLIC_BASE_URL` | Frontend URL used for the VNPay return page |
 | `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` | Email sending (notification service) |
@@ -86,10 +87,10 @@ pytest
 | `shared/` | `ParkingSystem.Contracts` (RabbitMQ events) and `ParkingSystem.ServiceDefaults` (logging, tracing, health, JWT, messaging for every .NET service) |
 | `tests/` | Integration tests that run real gRPC between services in memory |
 | `gateway/` | YARP API gateway |
-| `services/<name>/` | identity, parking, booking, payment, notification (`*.Domain`, `*.Application`, `*.Infrastructure`, `*.API`, `*.Tests`, `Dockerfile`) and `ai` (Python, FastAPI + gRPC) |
+| `services/<name>/` | identity, parking, booking, payment, notification (`*.Domain`, `*.Application`, `*.Infrastructure`, `*.Persistence`, `*.WebAPI`, `*.Tests`, `Dockerfile`) and `ai` (Python, FastAPI + gRPC) |
 | `edge/camera-simulator/` | Publishes fake zone-camera readings over MQTT |
 | `deploy/` | Docker Compose stack, database init script, RabbitMQ plugins |
-| `docs/` | Setup guide and team workflow (Vietnamese) |
+| `docs/` | Start with `huong-dan-setup-microservices.md` (setup and system overview for newcomers); also the team workflow, template deviations and open business decisions (Vietnamese) |
 | `.github/` | GitHub Actions workflows and the pull request templates from the mentor guide |
 
 ## Team workflow

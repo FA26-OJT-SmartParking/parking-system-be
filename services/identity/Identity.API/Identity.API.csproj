@@ -1,9 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
-
-  <ItemGroup>
-    <ProjectReference Include="..\Identity.Application\Identity.Application.csproj" />
-    <ProjectReference Include="..\Identity.Infrastructure\Identity.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\..\shared\ParkingSystem.ServiceDefaults\ParkingSystem.ServiceDefaults.csproj" />
-  </ItemGroup>
-
-</Project>

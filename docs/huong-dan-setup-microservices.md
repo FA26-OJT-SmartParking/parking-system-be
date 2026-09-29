@@ -1,259 +1,239 @@
-# Hướng dẫn setup microservices
+# Hướng dẫn setup hệ thống microservices
 
-Hệ thống tìm & quản lý bãi đỗ xe thông minh (3D + AI), dự án OJT 3 tháng. Kiến trúc: microservices, gọi nhau bằng gRPC (mentor yêu cầu), sự kiện qua RabbitMQ, mỗi service một database, mỗi service chia 5 tầng như `SEAL.*` của các dự án SWP, chạy bằng Docker Compose.
+Đọc file này là chạy được hệ thống trên máy và hiểu nó được chia ra sao. Hệ thống tìm và quản lý bãi đỗ xe thông minh (3D + AI), gồm hai repo trong GitHub organization `FA26-OJT-SmartParking`: `parking-system-be` (backend, có file này) và `parking-system-fe` (frontend Next.js). Đặt hai repo cạnh nhau trong một thư mục.
 
-> **Lưu ý (29/09):** nhiều điểm kỹ thuật và nghiệp vụ còn phụ thuộc tài liệu nào là nguồn chuẩn (xem mục 12). Khung hiện tại bám `context_v10.docx`.
+**Trạng thái:** khung kỹ thuật đã xong (cấu trúc service, database, gRPC, RabbitMQ, MQTT, gateway, test, CI) và có một luồng chạy thật từ camera giả lập tới sơ đồ 3D. **Chưa có nghiệp vụ** (đăng nhập, đặt chỗ, thanh toán, thông báo).
 
-## 1. Tổng quan
+## 1. Chạy thử trên máy
+
+**Cần cài:** Docker Desktop, .NET SDK 10, Node.js 20.9 trở lên, Git.
+
+Trên Windows, nếu chưa có Docker Desktop, mở PowerShell bằng quyền Administrator:
 
 ```
-Trình duyệt (Next.js + React + Three.js, một ứng dụng duy nhất, repo riêng)
-        │  REST + SignalR (WebSocket)
-        ▼
-API Gateway (YARP) ── kiểm tra JWT, CORS, định tuyến
-        │  REST (gateway → service)
-        ├── identity      (.NET)   → identity_db
-        ├── parking       (.NET)   → parking_db       + SignalR hub
-        ├── booking       (.NET)   → booking_db
-        ├── payment       (.NET)   → payment_db       ──► VNPay
-        ├── notification  (.NET)   → notification_db  ──► SMTP
-        └── ai            (Python) → ai_db            ──► OSRM
-Service gọi nhau khi cần kết quả ngay: gRPC (file .proto ở grpc_proto/), ví dụ booking → parking
-Sự kiện giữa các service: RabbitMQ + MassTransit
-Camera AI / trình giả lập ──MQTT──► RabbitMQ (plugin MQTT) ──► parking (sau này cả booking)
-Dùng chung: PostgreSQL (1 container), Redis, Aspire Dashboard (log, trace, metrics)
+wsl --install --no-distribution
 ```
 
-## 2. Frontend ở repo riêng
+Khởi động lại máy nếu được yêu cầu, rồi tải `Docker Desktop Installer.exe` từ docker.com. Nếu ổ C: ít chỗ, cài chương trình và dữ liệu sang ổ khác (thay `F:` bằng ổ của bạn):
 
-Chỉ backend chia thành microservices. Frontend là **một** ứng dụng Next.js (React + Three.js) ở repo riêng [`parking-system-fe`](https://github.com/FA26-OJT-SmartParking/parking-system-fe), chỉ gọi gateway, nên backend chia bao nhiêu service cũng không ảnh hưởng.
+```
+Start-Process '.\Docker Desktop Installer.exe' -Wait -ArgumentList 'install','--accept-license','--installation-dir=F:\Docker\Desktop','--wsl-default-data-root=F:\Docker\wsl'
+```
 
-- Chia thư mục theo tính năng: `auth`, `parking-3d`, `booking`, `payment`, `owner-dashboard`, `admin`.
-- Code Three.js để ở một module dùng chung cho sơ đồ 3D của khách và dashboard của chủ bãi.
-- Phần chủ bãi và quản trị tải riêng khi cần (lazy load).
+**Backend:**
 
-## 3. Trách nhiệm từng service
+```
+cd parking-system-be/deploy
+cp ../.env.example .env
+bash generate-jwt-keys.sh      # in 2 dòng; chép dòng JWT_PUBLIC_KEY vào .env
+```
 
-| Service | Làm gì | Quy tắc |
-|---|---|---|
-| identity | Tài khoản, OTP email, đăng nhập, JWT, vai trò khách / chủ bãi / nhân viên / quản trị, xe của khách | BR-10, BR-11 |
-| parking | Bãi, khu, sức chứa, cách tính phí và bảng giá, tỷ lệ suất đặt trước, layout JSON, trạng thái chỗ, xếp chỗ, hub SignalR, sự kiện camera khu vực, duyệt bãi | BR-06, BR-15, BR-16, BR-17 |
-| booking | 2 loại đặt chỗ, suất, phiên đỗ vào/ra (camera cổng hoặc nhân viên), vé QR xe đạp, hàng chờ xác nhận biển số, tính phí, tự hủy đặt chỗ quá hạn | BR-01, BR-02, BR-04, BR-07, BR-13, BR-14, BR-18, BR-19, BR-20, BR-22, BR-23 |
-| payment | VNPay (thanh toán, cọc, hoàn tiền, IPN), tiền mặt do nhân viên xác nhận, nợ theo biển số và bãi, doanh thu theo bãi, tự trừ qua token (P2) | BR-05, BR-09, BR-21, BR-24 |
-| notification | Email (OTP, nhắc nhở), thông báo trong ứng dụng | — |
-| ai | Gợi ý bãi (chấm điểm, gọi OSRM), dự báo lấp đầy 15 phút (baseline rồi LightGBM) | BR-08 |
+Trong `.env` điền `POSTGRES_PASSWORD`, `SERVICE_DB_PASSWORD`, `RABBITMQ_USER`, `RABBITMQ_PASSWORD` (giá trị tùy ý cho máy dev). Rồi chạy:
 
-Mỗi service chỉ đọc database của mình. Cần dữ liệu của service khác thì gọi API, hoặc giữ một bản sao lấy từ sự kiện.
+```
+docker compose --profile sim up --build
+```
 
-## 4. Giao tiếp
+Mặc định chỉ chạy 5 container lõi: postgres, rabbitmq, gateway, parking, booking. Profile bật thêm phần cần dùng:
 
-### 4.1 Gateway
+| Profile | Bật thêm |
+|---|---|
+| `sim` | camera giả lập (gửi tin MQTT giả cho 10 chỗ `A-01` đến `A-10`) |
+| `ai` | service AI (Python) |
+| `observability` | Aspire Dashboard, xem log và trace ở `http://localhost:18888`; đặt thêm `OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889` trong `.env` |
+| `full` | tất cả, kể cả identity, payment, notification (đang là khung trống) |
 
-Cấu hình ở `gateway/Gateway/appsettings.json`.
+Đo ngày 30/09/2026: 5 container lõi cùng camera giả lập dùng khoảng 0,5 GB RAM, đủ 11 container khoảng 0,84 GB (chưa tính máy ảo của Docker Desktop).
 
-| Đường dẫn | Service | Cần JWT |
-|---|---|---|
-| `/api/identity/auth/**` | identity | Không (đăng ký, đăng nhập, OTP) |
-| `/api/identity/**` | identity | Có |
-| `GET /api/parking/lots/**` | parking | Không (khách xem bãi) |
-| `/api/parking/**` | parking | Có |
-| `/hubs/**` | parking (SignalR) | Không (sơ đồ 3D real-time) |
-| `GET /api/booking/lots/**` | booking | Không (xem chỗ trống của bãi) |
-| `/api/booking/**` | booking | Có |
-| `/api/payment/vnpay/ipn` | payment | Không, payment tự kiểm tra chữ ký VNPay |
-| `/api/payment/**` | payment | Có |
-| `/api/notifications/**` | notification | Có |
-| `/api/ai/**` | ai | Không |
+**Kiểm tra** (gateway ở cổng 8088, không dùng 8080 vì hay bị chiếm):
 
-Gateway bỏ tiền tố `/api/<service>` trước khi chuyển tiếp, ví dụ `/api/ai/events/recent` tới ai thành `/events/recent`. CORS cho phép `http://localhost:3000` (Next.js lúc dev).
+| Địa chỉ | Kết quả đúng |
+|---|---|
+| `http://localhost:8088/health` | 200 |
+| `http://localhost:8088/api/booking/lots/00000000-0000-0000-0000-000000000001/availability` | 200, số chỗ trống và có xe (cần `sim`) |
+| `http://localhost:8088/api/ai/events/recent` | 200, các sự kiện gần nhất (cần `ai` và `sim`) |
 
-### 4.2 gRPC giữa các service (không qua gateway, chỉ trong mạng Docker)
+**Frontend:**
 
-Hợp đồng viết trong `grpc_proto/*.proto`; C# sinh code bằng `Grpc.Tools` (project `grpc_proto/ParkingSystem.Grpc.csproj`), Python sinh bằng `services/ai/gen_proto.py`. Service phục vụ gRPC nghe cổng 8081 (HTTP/2, không mở ra máy host); REST và SignalR vẫn ở cổng 8080.
+```
+cd parking-system-fe
+npm ci
+cp .env.example .env.local      # NEXT_PUBLIC_API_BASE_URL=http://localhost:8088
+npm run dev
+```
 
-| Hợp đồng | Bên phục vụ | Bên gọi | Trạng thái |
-|---|---|---|---|
-| `parking.proto` → `GetLotSlots` | parking | booking | Đã chạy: `GET /api/booking/lots/{lotId}/availability` |
-| `ai.proto` → `GetRecentSlotEvents` | ai (Python) | chưa có | Đã có server và test |
+Mở `http://localhost:3000`: sơ đồ 10 chỗ đổi màu theo tin từ camera giả lập (xanh: trống, đỏ: có xe, xám: chưa có dữ liệu).
 
-Sẽ thêm khi làm nghiệp vụ: xếp chỗ khi xe có đặt trước vào cổng (booking → parking, BR-15), kiểm tra nợ trước khi cho xe vào (booking → payment, BR-05).
+**Dừng và làm lại từ đầu:** `docker compose --profile full down` để dừng; thêm `-v` để xóa cả dữ liệu database (dữ liệu dev chỉ là dữ liệu mẫu).
 
-Lưu ý: gRPC nội bộ hiện chưa xác thực service gọi service; mạng Docker riêng không thay thế xác thực, cần chốt cách làm trước khi triển khai ngoài máy dev.
+## 2. Hệ thống gồm gì
 
-### 4.3 Sự kiện qua RabbitMQ
+```
+Trình duyệt (Next.js, cổng 3000)
+      │  REST + SignalR (WebSocket)
+      ▼
+API Gateway (YARP, cổng 8088) ── kiểm tra JWT, chuyển request
+      │
+      ├── identity ────────────► schema identity
+      ├── parking ─────────────► schema parking   ◄── MQTT ── camera giả lập
+      ├── booking ─ gRPC ─────► parking (GetLotSlots, AssignSlot)
+      │           └ gRPC ─────► payment (CheckDebt)
+      ├── payment ─────────────► schema payment
+      ├── notification ────────► schema notification
+      └── ai (Python) ◄── RabbitMQ (sự kiện SlotStatusChanged)
 
-Khai báo trong `shared/ParkingSystem.Contracts/Events.cs`.
+RabbitMQ: sự kiện giữa các service (MassTransit) và MQTT cho camera (plugin, cổng 1883)
+PostgreSQL: một container, một database `parking_system`, mỗi service một schema riêng
+```
 
-| Sự kiện | Service phát | Service nhận |
-|---|---|---|
-| OtpRequested | identity | notification |
-| LotApproved, LotUpdated | parking | booking, ai |
-| SlotStatusChanged, ZoneOccupancyChanged | parking | ai |
-| ReservationCreated | booking | payment, ai |
-| DepositPaid, DepositFailed | payment | booking |
-| ReservationConfirmed, ReservationCancelled | booking | payment, notification, ai |
-| SessionOpened, SessionClosed | booking | parking, payment, ai |
-| PaymentCompleted, RefundCompleted | payment | booking, notification |
+Trình duyệt chỉ gọi gateway. Service chỉ làm việc trong schema của mình; cần dữ liệu của service khác thì gọi gRPC hoặc nghe sự kiện.
 
-- MassTransit phát mỗi loại sự kiện vào exchange tên `ParkingSystem.Contracts:<TênSựKiện>` (kiểu fanout). Đổi tên sự kiện hay namespace là làm vỡ service khác.
-- Publish trong service .NET đi qua outbox: gọi `Publish(...)` rồi `SaveChangesAsync()` trên DbContext của service thì sự kiện mới được gửi. Nhận sự kiện đi qua inbox, sự kiện đến trùng chỉ xử lý một lần.
-- ai (Python) đọc bằng `aio-pika`: tạo queue riêng, bind vào exchange ở trên, lấy nội dung ở trường `message` của JSON (xem `services/ai/app/events.py`).
+| Thành phần | Việc đang làm |
+|---|---|
+| `gateway` | Định tuyến, kiểm tra JWT, CORS cho `http://localhost:3000` |
+| `parking` | Nhận MQTT, ghi trạng thái từng chỗ, phát sự kiện, SignalR hub `/hubs/parking`, gRPC `GetLotSlots` |
+| `booking` | API số chỗ trống, gọi gRPC sang parking và payment |
+| `identity`, `payment`, `notification` | Khung trống (có database, chưa có chức năng). `AssignSlot` và `CheckDebt` trả `Unimplemented` có chủ ý, để không cho xe vào bằng câu trả lời giả |
+| `ai` (Python) | Đọc sự kiện RabbitMQ, giữ các sự kiện gần nhất trong bộ nhớ; không dùng database |
+| `edge/camera-simulator` | Cứ 2 giây gửi một tin MQTT giả cho một chỗ ngẫu nhiên |
 
-### 4.4 Camera (MQTT)
+**Luồng chạy thật hiện có:** camera giả lập gửi MQTT (topic `lot/{lotId}/slot/{slotCode}`) → `parking` ghi bảng `SlotStates` và đưa sự kiện `SlotStatusChanged` vào outbox trong cùng transaction rồi gửi lên RabbitMQ → `parking` đẩy thay đổi tới trình duyệt qua SignalR (sự kiện `slotStatusChanged`) → `ai` nhận sự kiện. `booking` trả số chỗ trống bằng cách gọi gRPC sang `parking`.
 
-Camera và trình giả lập gửi MQTT tới RabbitMQ cổng 1883.
+**Công nghệ:**
 
-| Topic | Nội dung | Service nhận |
-|---|---|---|
-| `lot/{lotId}/gate/in`, `lot/{lotId}/gate/out` | biển số, loại xe, độ tin cậy, thời điểm | booking (chưa làm) |
-| `lot/{lotId}/slot/{slotCode}` | `status`, `confidence`, `at` | parking |
+| Lớp | Dùng |
+|---|---|
+| Service .NET | .NET 10, ASP.NET Core, MediatR 12.5.0, FluentValidation 12.1.1, Swashbuckle |
+| Database | PostgreSQL 17, Entity Framework Core 10 + Npgsql, EF Core migrations |
+| Gateway | YARP |
+| Gọi giữa service | gRPC |
+| Sự kiện | RabbitMQ 4 + MassTransit 8.5.10 (outbox và inbox) |
+| Camera | MQTT qua plugin của RabbitMQ (thư viện MQTTnet ở parking) |
+| Thời gian thực | SignalR |
+| Log, trace | Serilog, OpenTelemetry, Aspire Dashboard (tùy chọn) |
+| Service AI | Python 3.12, FastAPI, aio-pika, grpcio |
+| Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4, Three.js |
+| Test, CI | xUnit, pytest, Jest; Docker Compose, GitHub Actions |
 
-parking đọc bằng thư viện MQTTnet (`services/parking/Parking.API/Workers/MqttSlotListener.cs`). Mỗi tin nhắn được lưu thành trạng thái chỗ (bảng `SlotStates`), chuyển thành sự kiện `SlotStatusChanged` trong cùng một transaction (outbox) và đẩy lên sơ đồ 3D qua SignalR (`slotStatusChanged`).
+Không nâng MassTransit lên 9 và MediatR lên 13 trở lên (bản thương mại), và không dùng AutoMapper: phần map DTO viết tay.
 
-## 5. Các luồng chính
-
-### Đặt chỗ có cọc (saga)
-
-1. Khách gọi `POST /api/booking/reservations`. booking kiểm tra còn suất (BR-23), tạo đặt chỗ ở trạng thái **chờ cọc**, giữ suất và phát `ReservationCreated`.
-2. payment nhận sự kiện và ghi khoản cọc cần thu. Khách gọi `POST /api/payment/deposits/{reservationId}` để lấy link VNPay. Nếu payment chưa kịp nhận sự kiện thì API trả 409; frontend chờ khoảng 1 giây rồi gọi lại.
-3. VNPay gọi IPN. payment kiểm tra chữ ký rồi phát `DepositPaid` (hoặc `DepositFailed`).
-4. booking nhận `DepositPaid`, chuyển đặt chỗ sang **đã xác nhận** và phát `ReservationConfirmed`.
-5. Quá hạn chờ cọc thì booking hủy, nhả suất và phát `ReservationCancelled`. Tiền cọc về sau khi đã hủy thì payment tự hoàn.
-
-### Xe vào cổng
-
-1. Camera gửi `lot/{lotId}/gate/in`, hoặc nhân viên nhập biển số (BR-20).
-2. booking: độ tin cậy dưới 0.9 thì đưa vào hàng chờ nhân viên xác nhận (BR-07). Sau đó gọi payment kiểm tra nợ (BR-05).
-3. booking mở phiên và phát `SessionOpened`. Nếu xe có đặt trước thì gọi parking xếp chỗ (BR-15).
-
-### Xe ra
-
-1. Camera gửi `lot/{lotId}/gate/out`, hoặc nhân viên nhập biển số.
-2. booking tính phí (BR-19, BR-04), trừ cọc (BR-14) và phát `SessionClosed`.
-3. payment: tự trừ nếu khách đã liên kết VNPay (BR-24); nếu không thì khách quét QR hoặc trả tiền mặt (BR-21). Xong thì phát `PaymentCompleted`.
-4. Xe đi mà chưa trả: nhân viên đánh dấu, payment ghi nợ theo biển số và bãi (BR-05).
-
-## 6. Cấu trúc repo
+## 3. Cấu trúc code
 
 ```
 parking-system-be/
-├─ grpc_proto/                               # hợp đồng gRPC (.proto) + project sinh code C#
-├─ shared/
-│  ├─ ParkingSystem.Contracts/               # sự kiện RabbitMQ dùng chung
-│  └─ ParkingSystem.ServiceDefaults/         # cấu hình chung cho mọi service .NET
-├─ gateway/Gateway/                          # YARP
 ├─ services/
-│  ├─ identity|parking|booking|payment|notification/
-│  │  ├─ <Tên>.Domain/                       # entity, quy tắc nghiệp vụ (không phụ thuộc gì)
-│  │  ├─ <Tên>.Application/                  # Features (use case), Interfaces, Exceptions
-│  │  ├─ <Tên>.Infrastructure/               # EF Core, gRPC client, MQTT, RabbitMQ consumer
-│  │  ├─ <Tên>.API/                          # Program.cs, Controllers, gRPC server, SignalR hub
-│  │  ├─ <Tên>.Tests/                        # xUnit
-│  │  └─ Dockerfile                          # build context là gốc repo
-│  └─ ai/                                    # Python FastAPI + gRPC
-├─ tests/ParkingSystem.IntegrationTests/     # test gRPC thật giữa các service, chạy trong bộ nhớ
-├─ edge/camera-simulator/                    # Python, gửi MQTT giả lập
-├─ deploy/                                   # docker-compose.yml, init-db.sh, enabled_plugins
-├─ docs/                                     # tài liệu này, quy trình nhóm
-├─ .github/                                  # workflow CI, mẫu pull request
-├─ Directory.Build.props                     # net10.0, nullable, implicit usings
-├─ Directory.Packages.props                  # phiên bản gói NuGet ở một chỗ
-├─ nuget.config
-├─ ParkingSystem.slnx
-└─ .env.example
+│  ├─ identity | parking | booking | payment | notification/   # service .NET, cấu trúc ở dưới
+│  └─ ai/                      # Python: app/ (FastAPI, gRPC, RabbitMQ), tests/
+├─ gateway/Gateway/            # YARP, route ở appsettings.json
+├─ shared/
+│  ├─ ParkingSystem.Contracts/       # kiểu sự kiện RabbitMQ dùng chung
+│  └─ ParkingSystem.ServiceDefaults/ # Serilog, OpenTelemetry, health, kiểm tra JWT, lỗi 401/403, MigrateDatabase
+├─ grpc_proto/                 # hợp đồng gRPC (*.proto) + project sinh mã C#
+├─ tests/                      # test tích hợp gRPC giữa các service
+├─ edge/camera-simulator/      # Python, gửi MQTT giả
+├─ deploy/                     # docker-compose.yml, init-db.sh, generate-jwt-keys.sh
+└─ docs/                       # tài liệu
 ```
 
-Chiều phụ thuộc của mỗi service: `API → Infrastructure → Application → Domain`. `Application` chỉ khai báo interface (ví dụ `IParkingClient`, `ISlotStateStore`), `Infrastructure` cài đặt chúng; `API` ghép tất cả trong `Program.cs`. Consumer RabbitMQ đặt trong `Infrastructure` (MassTransit quét assembly chứa DbContext).
+**Mỗi service .NET** theo mẫu `Project.CleanArchitecture` của mentor, 5 project và một project test:
 
-## 7. Chạy trên máy
+| Project | Chứa gì |
+|---|---|
+| `X.Domain` | `Base/`, `Entities/`, `Enum/`. Không phụ thuộc gì |
+| `X.Application` | `Usecase/<Tên>/` (Command hoặc Query, Handler, Validator), `DTOs/`, `Common/` (Behaviors, Interfaces, Models, Mappers), `Resources.resx` (thông báo) |
+| `X.Infrastructure` | `GRPC/` (Client, Services, Interceptors), `MessageBroker/` (MassTransit), `Consumers/` |
+| `X.Persistence` | `ApplicationDbContext`, `EntityTypeConfigurations/`, `Repositories/`, `UnitOfWork`, `Migrations/` |
+| `X.WebAPI` | `Program.cs`, `Controllers/`, `Middleware/`, Swagger |
+| `X.Tests` | xUnit |
 
-1. Cài WSL và Docker Desktop. Trên Windows, mở PowerShell bằng quyền Administrator:
-   - Chạy `wsl --install --no-distribution`, rồi khởi động lại máy nếu được yêu cầu.
-   - Tải `Docker Desktop Installer.exe` từ docker.com. Nếu ổ C: ít chỗ, cài chương trình và dữ liệu sang ổ khác (thay `F:` bằng ổ của bạn):
-     ```
-     Start-Process '.\Docker Desktop Installer.exe' -Wait -ArgumentList 'install','--accept-license','--installation-dir=F:\Docker\Desktop','--wsl-default-data-root=F:\Docker\wsl'
-     ```
-   - Đã cài vào ổ C: rồi thì chuyển dữ liệu ở Settings → Resources → Advanced → Disk image location.
-2. Tại thư mục `deploy`, chép `../.env.example` thành `.env` rồi điền giá trị (`JWT_SIGNING_KEY` dài ít nhất 32 ký tự).
-3. `docker compose up --build`. Thêm `--profile sim` để chạy trình giả lập camera.
-4. Kiểm tra (trên máy host, gateway dùng cổng 8088 và PostgreSQL dùng 5433 để không trùng phần mềm cài sẵn hay chiếm 8080 và 5432):
-   - Gateway: `http://localhost:8088/health`
-   - Aspire Dashboard (log, trace): `http://localhost:18888`
-   - RabbitMQ: `http://localhost:15672`
-   - Luồng mẫu camera → parking → ai: `http://localhost:8088/api/ai/events/recent`
+Chiều phụ thuộc: `WebAPI → Infrastructure → Persistence → Application → Domain`. `Application` chỉ khai báo interface (`IUnitOfWork`, `IUnitOfGrpc`, `IEventPublisher`); các lớp ngoài cài đặt.
 
-Các cổng chỉ dùng khi dev (PostgreSQL 5433, RabbitMQ 5672 và 15672, Aspire 18888 và 18889) chỉ mở trên `127.0.0.1`. Máy khác chỉ vào được gateway (8088) và MQTT (1883).
+**Một request đi qua:** controller (kế thừa `ApiControllerBase`) gửi Command hoặc Query qua MediatR → `ValidationBehavior` chạy validator → handler chạy → `ExceptionHandlingMiddleware` đổi mọi lỗi thành phản hồi chuẩn (theo `API Design Template`):
 
-Chạy một service .NET ngoài Docker để debug, ví dụ parking:
+```json
+{ "result": { }, "isSuccess": true, "statusCode": 200, "message": "..." }
+```
 
-1. `docker compose stop parking` để container của service đó không chạy song song.
-2. Đặt cấu hình bằng biến môi trường (dùng `__` thay cho `:`) hoặc `dotnet user-secrets` (chạy `dotnet user-secrets init` một lần cho project):
-   - `ConnectionStrings:Db` = `Host=localhost;Port=5433;Database=parking_db;Username=parking_svc;Password=<SERVICE_DB_PASSWORD>`
-   - `RabbitMq:Host` = `localhost`, cùng `RabbitMq:Username` và `RabbitMq:Password` như trong `.env`. Riêng parking thêm `Mqtt:Host` = `localhost`, `Mqtt:Username`, `Mqtt:Password`.
-   - `Jwt:SigningKey` như trong `.env`. Thiếu khóa này thì service dừng ngay khi khởi động.
-   - `OTEL_EXPORTER_OTLP_ENDPOINT` = `http://localhost:18889` nếu muốn xem log và trace trên Aspire Dashboard.
-3. `dotnet run --project services/parking/Parking.API`, rồi gọi thẳng service ở cổng nó in ra. Gateway trong Docker vẫn trỏ tới container, nên request qua gateway không tới bản đang debug.
+Lỗi dùng cùng dạng với `result` là `null`: 400 (dữ liệu vào sai, `message` là lỗi đầu tiên), 401 và 403, 404, 501 (chức năng chưa làm), 503 (service khác không gọi được), 500 (câu chung, chi tiết chỉ ghi log).
 
-## 8. Cấu hình chung (`shared/ParkingSystem.ServiceDefaults`)
+**Thêm một use case:** (1) entity ở `Domain/Entities` nếu cần; (2) `Usecase/<Tên>/` với Query hoặc Command, Validator, Handler, DTO; (3) interface mới ở `Application/Common/Interfaces`, cài đặt ở `Persistence` hoặc `Infrastructure`; (4) controller trả `Success(kết quả, thông báo)`; (5) đổi mô hình dữ liệu thì thêm migration; (6) viết test; (7) mô tả API theo `API Design Template` ở `docs/api/`. Ví dụ đầy đủ: `services/booking/Booking.Application/Usecase/Availability` và `AvailabilityController`.
 
-Mỗi service .NET chỉ cần vài dòng trong `Program.cs`:
+## 4. Giao tiếp giữa các thành phần
 
-- `builder.AddServiceDefaults("<tên>")`: Serilog; OpenTelemetry cho trace và metrics; log, trace, metrics gửi về Aspire Dashboard khi có `OTEL_EXPORTER_OTLP_ENDPOINT`; health check; JWT.
-- `builder.AddMessaging<TDb>()`: MassTransit + RabbitMQ, outbox và inbox trên DbContext của service. Consumer đặt trong project `Infrastructure` của service được đăng ký tự động.
-- `app.UseServiceDefaults()`: log request, xác thực, phân quyền, endpoint `/health`.
-- `app.EnsureDatabaseCreated<TDb>()`: tự tạo bảng khi chạy Development. Khi service có bảng nghiệp vụ thật thì chuyển sang EF Core migrations.
+**REST qua gateway.** Service tự phục vụ đường dẫn `/api/...`, gateway chuyển tiếp nguyên đường dẫn (trừ service AI). Route ở `gateway/Gateway/appsettings.json`:
 
-Phiên bản gói ghi ở `Directory.Packages.props`. MassTransit giữ bản 8 (mã nguồn mở); từ bản 9 là bản thương mại.
-
-## 9. Quy ước chung
-
-- .NET 10 (LTS), PostgreSQL 17, RabbitMQ 4. Python trong container là 3.12; máy dev có 3.10 trở lên cũng chạy test được.
-- Tiền lưu bằng số nguyên (đồng). Thời gian lưu theo UTC, hiển thị theo giờ Việt Nam; quy tắc 22:00 (BR-04) tính theo giờ Việt Nam.
-- JWT do identity ký (HS256, khóa ở `.env`); gateway và từng service đều kiểm tra.
-- Không commit khóa thật: `.env` nằm trong `.gitignore`, chỉ commit `.env.example`. Khóa VNPay chỉ có ở payment.
-- Gói NuGet mặc định lưu ở ổ C:. Muốn chuyển sang ổ khác thì đặt biến môi trường `NUGET_PACKAGES`, ví dụ `F:\dev\nuget-packages`.
-- Git, commit, pull request: xem `docs/workflow.md`.
-
-## 10. Kiểm thử và CI
-
-- Unit test: `dotnet test ParkingSystem.slnx`; ai: `cd services/ai`, `pip install -r requirements-dev.txt`, `pytest`.
-- Integration: chạy service với PostgreSQL và RabbitMQ thật (Testcontainers) khi bắt đầu có nghiệp vụ.
-- Saga: cọc thất bại, hết hạn chờ cọc, IPN của VNPay đến trễ hoặc đến 2 lần.
-- CI: Gitlab Guide chỉ ghi dòng "CI/CD pipeline passes successfully" trong Definition of Done, không quy định pipeline cụ thể. Các workflow trong `.github/workflows/` là thiết kế của nhóm: mỗi service một workflow, chỉ chạy khi thư mục của service (hoặc `grpc_proto/`, `shared/`) thay đổi; workflow `integration` chạy test gRPC giữa booking và parking; kích hoạt trên push vào `main`, `develop` và trên pull request. Đến 29/09/2026 các workflow này chưa chạy lần nào trên GitHub.
-- CD chưa làm; cách triển khai khi demo chưa chốt.
-
-## 11. Lưu ý
-
-- **RAM:** cả hệ thống khoảng 12 container, nên có 16 GB. Máy 8 GB thì chỉ bật service đang làm.
-- **IPN của VNPay cần URL công khai:** địa chỉ `https://<tên miền>/api/payment/vnpay/ipn` khai báo trong trang quản trị merchant của VNPay. Lúc dev dùng tunnel (Cloudflare Tunnel hoặc ngrok).
-- **OSRM:** máy chủ demo công khai có giới hạn truy cập. Gọi nhiều thì cache kết quả hoặc tự chạy OSRM bằng Docker.
-- **Máy ảo demo công khai:** file compose đã chỉ mở các cổng dev trên `127.0.0.1`. Ở tường lửa của máy ảo chỉ mở cổng gateway (8088, hoặc 80/443 qua reverse proxy); mở thêm 1883 khi có camera thật gửi từ nơi khác. Aspire Dashboard đang tắt đăng nhập nên không được đưa ra Internet.
-- **Kubernetes:** để giai đoạn sau.
-
-## 12. Quyết định còn mở (rà soát ngày 29/09)
-
-Trong `Downloads` có 3 tài liệu khác nhau về nghiệp vụ và kỹ thuật: `SRS.md` v1.1, `context_bai_do_xe_v1.2_microservice.md` và `context_v10.docx`. Cần hỏi mentor để chốt nguồn chuẩn. Các điểm sau có thể phải đổi ở khung này:
-
-| Điểm | Khung hiện tại | SRS v1.1 |
+| Đường dẫn | Tới | Cần token |
 |---|---|---|
-| Broker MQTT | Plugin MQTT của RabbitMQ | Mosquitto riêng, RabbitMQ chỉ cho sự kiện nghiệp vụ |
-| JWT | HS256, một khóa dùng chung | RS256, Identity giữ khóa riêng, service kiểm tra bằng khóa công khai (NFR-SEC-003) |
-| Bản đồ và ETA | OSRM | Mapbox |
-| Thanh toán | VNPay | VNPay và MoMo, sandbox |
-| Đặt chỗ | 2 loại, cọc cố định | BOOKING trả trước 100%, HOLD cọc 30% |
-| Quy tắc BR | BR-01 đến BR-24 (theo v10) | BR-01 đến BR-20 |
-| Route công khai của gateway | `/hubs/**`, `/api/ai/**` mở hoàn toàn | Chỉ mở dữ liệu công khai, phân quyền theo thao tác |
+| `/api/auth/*` | identity | không |
+| `/api/identity/*` | identity | có |
+| `GET /api/parking/lots/*` | parking | không |
+| `/api/parking/*` | parking | có |
+| `/hubs/*` (SignalR) | parking | không |
+| `GET /api/booking/lots/*` | booking | không |
+| `/api/booking/*` | booking | có |
+| `/api/payment/vnpay/ipn` | payment | không |
+| `/api/payment/*` | payment | có |
+| `/api/notifications/*` | notification | có |
+| `/api/ai/*` (gateway bỏ tiền tố `/api/ai`) | ai | không |
 
-Trong lúc chờ, chỉ làm phần không phụ thuộc các điểm trên (cấu trúc 5 tầng, gRPC, hạ tầng, FE).
+**gRPC** (`grpc_proto/`, chỉ trong mạng nội bộ, cổng 8081): `parking.proto` (`GetLotSlots`, `AssignSlot`), `payment.proto` (`CheckDebt`), `ai.proto` (`GetRecentSlotEvents`). Một project sinh mã C# cho cả server và client; service AI sinh mã Python từ cùng file bằng `services/ai/gen_proto.py`.
 
-## 13. Lưu ý khi đổi mô hình dữ liệu
+**Sự kiện RabbitMQ.** Kiểu sự kiện khai báo ở `shared/ParkingSystem.Contracts/Events.cs`. MassTransit gửi mỗi kiểu tới exchange `ParkingSystem.Contracts:<TênKiểu>` và service AI bám đúng tên đó, nên đổi tên kiểu hoặc namespace là thay đổi phá vỡ. Hiện chỉ `SlotStatusChanged` được gửi và nghe. Gửi đi qua outbox, nhận qua inbox (bảng trong schema của service), nên một tin giao hai lần chỉ được xử lý một lần.
 
-Trong môi trường dev, service tự tạo bảng bằng `EnsureCreated`. Lệnh này **không thêm bảng vào database đã có**. Khi thêm hoặc đổi bảng, tạo lại database của service (dữ liệu dev chỉ là dữ liệu mẫu). Ví dụ với parking:
+## 5. Cơ sở dữ liệu
+
+- **PostgreSQL 17**, một container, **một database `parking_system`**, một tài khoản `app_svc` (mật khẩu `SERVICE_DB_PASSWORD`; quản trị bằng tài khoản `postgres` với `POSTGRES_PASSWORD`). Mỗi service làm việc trong **schema riêng**: `identity`, `parking`, `booking`, `payment`, `notification`. Bảng, bảng outbox/inbox của MassTransit và `__EFMigrationsHistory` của service nằm trong schema đó nên không trùng tên nhau. `deploy/postgres/init-db.sh` tạo database và schema, chỉ chạy khi volume `pgdata` còn trống.
+- **Kết nối từ máy host** (DBeaver, pgAdmin, psql): `localhost:5433`, database `parking_system`, user `app_svc`. Không cần cài PostgreSQL riêng; cổng 5433 (không phải 5432) để không đụng PostgreSQL cài sẵn.
+- **Bảng hiện có:** `identity` có `users`, `user_accounts`, `user_account_sessions`, `old_passwords` (bảng mẫu của template); `parking` có `SlotStates`; `booking`, `payment`, `notification` chưa có bảng nghiệp vụ. Mỗi schema có thêm `InboxState`, `OutboxMessage`, `OutboxState`, `__EFMigrationsHistory`.
+- **Migration** nằm ở `X.Persistence/Migrations` và tự chạy khi service khởi động ở chế độ Development. Thêm migration mới (cài công cụ một lần: `dotnet tool install -g dotnet-ef`):
 
 ```
-docker compose exec postgres psql -U postgres -c "DROP DATABASE parking_db WITH (FORCE)"
-docker compose exec postgres psql -U postgres -c "CREATE DATABASE parking_db OWNER parking_svc"
-docker compose restart parking
+dotnet ef migrations add <TenMigration> --project services/<tên>/<Tên>.Persistence --startup-project services/<tên>/<Tên>.Persistence --output-dir Migrations
 ```
 
-Khi service có dữ liệu thật thì chuyển sang EF Core migrations, không xóa database.
+  Mỗi service có một test báo lỗi khi mô hình đổi mà chưa có migration.
+
+## 6. Cấu hình và phát triển
+
+**Biến trong `deploy/.env`** (không commit; mẫu ở `.env.example`):
+
+| Biến | Ý nghĩa |
+|---|---|
+| `POSTGRES_PASSWORD`, `SERVICE_DB_PASSWORD` | Mật khẩu quản trị PostgreSQL; mật khẩu tài khoản `app_svc` |
+| `RABBITMQ_USER`, `RABBITMQ_PASSWORD` | RabbitMQ, dùng luôn cho MQTT |
+| `JWT_PUBLIC_KEY` | Khóa công khai RS256 (base64, một dòng); gateway và service dùng nó để kiểm tra token |
+| `VNPAY_*`, `PUBLIC_BASE_URL`, `SMTP_*` | Dành cho payment và notification, chưa có code dùng |
+
+Service **không có giá trị mặc định** trong code: thiếu chuỗi kết nối, `MessageBrokerSettings`, `Jwt:PublicKey`, `Grpc:*` hoặc `Mqtt:*` thì service dừng ngay khi khởi động và báo tên khóa thiếu. Token JWT ký RS256; chưa service nào cấp token vì đăng nhập chưa làm.
+
+**Chạy một service ngoài Docker để debug:** `docker compose stop <tên>`, đặt cấu hình bằng biến môi trường (dùng `__` thay `:`) hoặc `dotnet user-secrets`, rồi `dotnet run --project services/<tên>/<Tên>.WebAPI`. Cần: `ConnectionStrings:DefaultConnection` (`Host=localhost;Port=5433;Database=parking_system;Username=app_svc;Password=...`), `MessageBrokerSettings:HostName` (`localhost`), `:UserName`, `:Password` (như RabbitMQ trong `.env`), `Jwt:PublicKey`; parking thêm `Mqtt:Host`, `Mqtt:Username`, `Mqtt:Password`; booking cần `Grpc:Parking` và `Grpc:Payment` (đã có trong `appsettings.Development.json`). Ở chế độ Development, mở Swagger UI ở gốc của service.
+
+**Test:**
+
+| Việc | Lệnh |
+|---|---|
+| Test .NET (41 test) | `dotnet test ParkingSystem.slnx` |
+| Test AI (4 test) | `cd services/ai && pip install -r requirements-dev.txt && pytest` |
+| Frontend (6 test) | `npm test`, `npm run lint`, `npm run typecheck` |
+
+**CI (GitHub Actions):** mỗi service, gateway, service AI và test tích hợp một workflow trong `.github/workflows/`, chạy khi push vào `main`, `develop` và trên pull request đổi thư mục liên quan. Frontend có `ci.yml` (lint, kiểm tra kiểu, test, build).
+
+**Git:** nhánh `features/Implementation_<Tên>`, `features/Design_<Tên>`, `hotfix/Bug_<Tên>`, `release/sprint_x` gộp vào `develop` bằng pull request theo mẫu ở `.github/pull_request_template.md`; commit bằng tiếng Anh, mỗi commit một thay đổi; không commit `.env` hay khóa. Chi tiết: `docs/workflow.md`.
+
+## 7. Lỗi thường gặp
+
+| Hiện tượng | Cách xử lý |
+|---|---|
+| Service dừng khi khởi động, log nói thiếu một khóa cấu hình | Điền khóa đó vào `deploy/.env` (hoặc user-secrets khi chạy ngoài Docker) |
+| Log `Failed executing DbCommand ... __EFMigrationsHistory` lúc service lên lần đầu | Bình thường: EF thấy bảng lịch sử migration chưa có rồi tạo nó |
+| Migration báo bảng đã tồn tại, hoặc không thấy database `parking_system` | Volume dữ liệu do bản cũ tạo. Chạy `docker compose --profile full down -v` rồi `up --build` |
+| Sơ đồ 3D không đổi màu | Chưa bật profile `sim`, hoặc gateway chưa chạy (`/health`) |
+| Docker báo lỗi I/O hoặc không build được | Kiểm tra ổ đĩa còn trống; nếu ổ C: đầy, chuyển dữ liệu Docker sang ổ khác ở Settings → Resources → Advanced → Disk image location |
+
+## 8. Đọc thêm
+
+| File | Nội dung |
+|---|---|
+| `docs/workflow.md` | Quy trình Git, issue board GitLab, tài liệu mỗi sprint |
+| `docs/template-deviations.md` | Chỗ khác mẫu `Project.CleanArchitecture` và lý do |
+| `docs/quyet-dinh-nghiep-vu.md` | Các điểm nghiệp vụ còn mâu thuẫn và câu hỏi cho mentor |

@@ -1,0 +1,15 @@
+using Parking.Domain.Entities;
+
+namespace Parking.Application.Common.Interfaces.Persistence;
+
+public interface ISlotStateStore
+{
+    /// <summary>
+    /// Adds or updates a slot. Nothing is saved here: the caller commits with SaveChanges,
+    /// so the state and any outbox message are written in one transaction.
+    /// </summary>
+    Task UpsertAsync(Guid lotId, string code, string status, DateTimeOffset at, CancellationToken cancellationToken);
+
+    /// <summary>Every known slot of a lot, ordered by code.</summary>
+    Task<IReadOnlyList<SlotState>> GetByLotAsync(Guid lotId, CancellationToken cancellationToken);
+}

@@ -5,12 +5,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="MassTransit.RabbitMQ" />
     <PackageReference Include="MassTransit.EntityFrameworkCore" />
   </ItemGroup>
 
+
   <ItemGroup>
     <ProjectReference Include="..\Identity.Application\Identity.Application.csproj" />
+    <ProjectReference Include="..\Identity.Persistence\Identity.Persistence.csproj" />
     <ProjectReference Include="..\..\..\shared\ParkingSystem.Contracts\ParkingSystem.Contracts.csproj" />
   </ItemGroup>
 

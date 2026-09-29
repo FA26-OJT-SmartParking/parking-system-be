@@ -1,7 +1,7 @@
-using System.Text;
-using MassTransit;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -59,16 +59,35 @@ public static class ServiceDefaultsExtensions
 
         builder.Services.AddHealthChecks();
 
-        // Tokens are issued by the identity service and checked by the gateway and by each service (BR-11 claims come later).
-        var signingKey = builder.Configuration["Jwt:SigningKey"]
-            ?? throw new InvalidOperationException("Jwt:SigningKey is not configured (set it in .env or with dotnet user-secrets).");
+        // Tokens are signed by the identity service with its private key (RS256, NFR-SEC-003);
+        // the gateway and every service only hold the public key, so none of them can issue a token.
+        var publicKey = builder.Configuration["Jwt:PublicKey"]
+            ?? throw new InvalidOperationException("Jwt:PublicKey is not configured (set it in deploy/.env or with dotnet user-secrets).");
+        var rsa = RSA.Create();
+        rsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(publicKey), out _);
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options => options.TokenValidationParameters = new TokenValidationParameters
+            .AddJwtBearer(options =>
             {
-                ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                ValidateAudience = false,
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                    ValidateAudience = false,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new RsaSecurityKey(rsa),
+                    ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
+                };
+
+                // 401 and 403 use the same body as every other error (see the API Design Template)
+                options.Events = new JwtBearerEvents
+                {
+                    OnChallenge = context =>
+                    {
+                        context.HandleResponse();
+                        return WriteErrorAsync(context.Response, StatusCodes.Status401Unauthorized, "You are not signed in. Sign in and try again.");
+                    },
+                    OnForbidden = context =>
+                        WriteErrorAsync(context.Response, StatusCodes.Status403Forbidden, "You do not have permission to do this."),
+                };
             });
         builder.Services.AddAuthorization();
 
@@ -76,41 +95,13 @@ public static class ServiceDefaultsExtensions
     }
 
     /// <summary>
-    /// MassTransit over RabbitMQ. Messages published inside a request are stored in the outbox of
-    /// <typeparamref name="TDbContext"/> and sent after SaveChanges; consumed messages go through the inbox,
-    /// so a message delivered twice is handled once.
+    /// Request logging, authentication, authorization and the /health endpoint.
+    /// <paramref name="afterRequestLogging"/> adds middleware that must run after logging and before authentication.
     /// </summary>
-    public static WebApplicationBuilder AddMessaging<TDbContext>(this WebApplicationBuilder builder)
-        where TDbContext : DbContext
-    {
-        builder.Services.AddMassTransit(x =>
-        {
-            x.AddConsumers(typeof(TDbContext).Assembly);
-            x.AddEntityFrameworkOutbox<TDbContext>(outbox =>
-            {
-                outbox.UsePostgres();
-                outbox.UseBusOutbox();
-            });
-            x.AddConfigureEndpointsCallback((context, _, endpoint) =>
-                endpoint.UseEntityFrameworkOutbox<TDbContext>(context));
-            x.UsingRabbitMq((context, bus) =>
-            {
-                bus.Host(builder.Configuration["RabbitMq:Host"] ?? "localhost", "/", host =>
-                {
-                    host.Username(builder.Configuration["RabbitMq:Username"] ?? "guest");
-                    host.Password(builder.Configuration["RabbitMq:Password"] ?? "guest");
-                });
-                bus.ConfigureEndpoints(context);
-            });
-        });
-
-        return builder;
-    }
-
-    /// <summary>Request logging, authentication, authorization and the /health endpoint.</summary>
-    public static WebApplication UseServiceDefaults(this WebApplication app)
+    public static WebApplication UseServiceDefaults(this WebApplication app, Action<IApplicationBuilder>? afterRequestLogging = null)
     {
         app.UseSerilogRequestLogging();
+        afterRequestLogging?.Invoke(app);
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapHealthChecks("/health");
@@ -118,17 +109,23 @@ public static class ServiceDefaultsExtensions
     }
 
     /// <summary>
-    /// Creates the tables on startup when running in Development.
-    /// Switch to EF Core migrations once the service has real business tables.
+    /// Applies the EF Core migrations of <typeparamref name="TDbContext"/> on startup in Development.
+    /// Elsewhere, run them as a deployment step (dotnet ef database update) before the new version starts.
     /// </summary>
-    public static WebApplication EnsureDatabaseCreated<TDbContext>(this WebApplication app)
+    public static WebApplication MigrateDatabase<TDbContext>(this WebApplication app)
         where TDbContext : DbContext
     {
         if (app.Environment.IsDevelopment())
         {
             using var scope = app.Services.CreateScope();
-            scope.ServiceProvider.GetRequiredService<TDbContext>().Database.EnsureCreated();
+            scope.ServiceProvider.GetRequiredService<TDbContext>().Database.Migrate();
         }
         return app;
+    }
+
+    private static Task WriteErrorAsync(HttpResponse response, int statusCode, string message)
+    {
+        response.StatusCode = statusCode;
+        return response.WriteAsJsonAsync(new { result = (object?)null, isSuccess = false, statusCode, message });
     }
 }
