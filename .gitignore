@@ -27,3 +27,8 @@ dist/
 .vscode/
 Thumbs.db
 .DS_Store
+
+/net-commander
+
+# gRPC code generated from grpc_proto (python gen_proto.py)
+services/ai/app/generated/

@@ -1,31 +1,35 @@
-name: parking
+name: integration
 
 on:
   push:
     branches: [main, develop]
     paths:
+      - tests/**
       - services/parking/**
+      - services/booking/**
       - grpc_proto/**
       - shared/**
       - Directory.Build.props
       - Directory.Packages.props
       - nuget.config
-      - .github/workflows/parking.yml
+      - .github/workflows/integration.yml
   pull_request:
     paths:
+      - tests/**
       - services/parking/**
+      - services/booking/**
       - grpc_proto/**
       - shared/**
       - Directory.Build.props
       - Directory.Packages.props
       - nuget.config
-      - .github/workflows/parking.yml
+      - .github/workflows/integration.yml
 
 permissions:
   contents: read
 
 jobs:
-  build-test:
+  grpc:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -36,4 +40,4 @@ jobs:
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
-      - run: dotnet test services/parking/Parking.Tests -c Release
+      - run: dotnet test tests/ParkingSystem.IntegrationTests -c Release

@@ -5,7 +5,7 @@ on:
     branches: [main, develop]
     paths:
       - services/notification/**
-      - contracts/**
+      - grpc_proto/**
       - shared/**
       - Directory.Build.props
       - Directory.Packages.props
@@ -14,7 +14,7 @@ on:
   pull_request:
     paths:
       - services/notification/**
-      - contracts/**
+      - grpc_proto/**
       - shared/**
       - Directory.Build.props
       - Directory.Packages.props

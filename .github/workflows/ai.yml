@@ -5,10 +5,12 @@ on:
     branches: [main, develop]
     paths:
       - services/ai/**
+      - grpc_proto/**
       - .github/workflows/ai.yml
   pull_request:
     paths:
       - services/ai/**
+      - grpc_proto/**
       - .github/workflows/ai.yml
 
 permissions:
