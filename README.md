@@ -4,7 +4,7 @@ Smart parking finder and management platform with a 3D lot view and AI recommend
 
 This repository holds the backend. The web app is in [parking-system-fe](https://github.com/FA26-OJT-SmartParking/parking-system-fe).
 
-> Status: project skeleton. Each service is split into Domain, Application, Infrastructure, API and Tests layers. Two sample flows exist: camera simulator → parking → RabbitMQ → ai, and booking → parking over gRPC (`GET /api/booking/lots/{lotId}/availability`). Some business and technical choices wait for the team to confirm the source-of-truth document, see `docs/huong-dan-setup-microservices.md` section 12.
+> Status: project skeleton. Each service is split into Domain, Application, Infrastructure, Persistence, WebAPI and Tests projects. Two sample flows exist: camera simulator → parking → RabbitMQ → ai, and booking → parking over gRPC (`GET /api/booking/lots/{lotId}/availability`). No business features yet: several business rules still conflict between the source documents, see `docs/quyet-dinh-nghiep-vu.md`.
 
 ## Planned features
 
@@ -90,7 +90,7 @@ pytest
 | `services/<name>/` | identity, parking, booking, payment, notification (`*.Domain`, `*.Application`, `*.Infrastructure`, `*.Persistence`, `*.WebAPI`, `*.Tests`, `Dockerfile`) and `ai` (Python, FastAPI + gRPC) |
 | `edge/camera-simulator/` | Publishes fake zone-camera readings over MQTT |
 | `deploy/` | Docker Compose stack, database init script, RabbitMQ plugins |
-| `docs/` | Start with `tong-quan-he-thong.md` (system overview for newcomers); also the setup guide, team workflow and template deviations (Vietnamese) |
+| `docs/` | Start with `huong-dan-setup-microservices.md` (setup and system overview for newcomers); also the team workflow, template deviations and open business decisions (Vietnamese) |
 | `.github/` | GitHub Actions workflows and the pull request templates from the mentor guide |
 
 ## Team workflow
