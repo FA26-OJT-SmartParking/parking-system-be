@@ -1,16 +1,26 @@
 # Local development stack. Run from this folder: copy ../.env.example to .env, fill it in, then
-#   docker compose up --build                 (add --profile sim to start the camera simulator)
+#   docker compose up --build                     core stack: postgres, rabbitmq, gateway, parking, booking
+#   docker compose --profile sim up --build       + camera simulator (fake slot readings over MQTT)
+#   docker compose --profile ai up --build        + AI service
+#   docker compose --profile observability up ... + Aspire Dashboard (also set OTEL_EXPORTER_OTLP_ENDPOINT in .env)
+#   docker compose --profile full up --build      everything, including the services that are still empty shells
 # Dev-only ports listen on 127.0.0.1; other machines can reach only the gateway (8088) and MQTT (1883).
 name: parking
 
 x-service-env: &service-env
   ASPNETCORE_ENVIRONMENT: Development
-  OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}   # empty: no logs/traces are exported
   MessageBrokerSettings__HostName: rabbitmq
   MessageBrokerSettings__UserName: ${RABBITMQ_USER}
   MessageBrokerSettings__Password: ${RABBITMQ_PASSWORD}
   Jwt__Issuer: parking-identity
   Jwt__PublicKey: ${JWT_PUBLIC_KEY}
+
+# One database for the whole system; each service works in its own schema.
+# GSS encryption is disabled: Npgsql tries it by default and the .NET runtime image has no libgssapi_krb5,
+# which logs an error on every connection. Kerberos is not used here.
+x-database-env: &database-env
+  ConnectionStrings__DefaultConnection: Host=postgres;Database=parking_system;Username=app_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
 
 x-infra-ready: &infra-ready
   postgres: { condition: service_healthy }
@@ -31,9 +41,6 @@ services:
       interval: 5s
       retries: 10
 
-  redis:
-    image: redis:7
-
   rabbitmq:
     image: rabbitmq:4-management
     environment:
@@ -50,34 +57,16 @@ services:
       interval: 10s
       retries: 10
 
-  aspire-dashboard:
-    image: mcr.microsoft.com/dotnet/aspire-dashboard:13
-    environment:
-      ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"   # local development only; the UI listens on 127.0.0.1
-    ports:
-      - "127.0.0.1:18888:18888"   # dashboard UI
-      - "127.0.0.1:18889:18889"   # OTLP/gRPC, for services run outside Docker
-
   gateway:
     build: { context: .., dockerfile: gateway/Dockerfile }
     environment: *service-env
     ports: ["8088:8080"]   # 8080 is often taken on dev machines
-    depends_on: [identity, parking, booking, payment, notification, ai]
-
-  # Connection strings disable GSS encryption: Npgsql tries it by default and the .NET runtime image
-  # has no libgssapi_krb5, which logs an error on every connection. Kerberos is not used here.
-  identity:
-    build: { context: .., dockerfile: services/identity/Dockerfile }
-    environment:
-      <<: *service-env
-      ConnectionStrings__DefaultConnection: Host=postgres;Database=identity_db;Username=identity_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
-    depends_on: *infra-ready
+    depends_on: [parking, booking]
 
   parking:
     build: { context: .., dockerfile: services/parking/Dockerfile }
     environment:
-      <<: *service-env
-      ConnectionStrings__DefaultConnection: Host=postgres;Database=parking_db;Username=parking_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
+      <<: [*service-env, *database-env]
       Kestrel__Endpoints__Rest__Url: http://+:8080     # REST and SignalR (HTTP/1.1)
       Kestrel__Endpoints__Grpc__Url: http://+:8081     # gRPC (HTTP/2), internal network only
       Mqtt__Host: rabbitmq
@@ -88,17 +77,25 @@ services:
   booking:
     build: { context: .., dockerfile: services/booking/Dockerfile }
     environment:
-      <<: *service-env
-      ConnectionStrings__DefaultConnection: Host=postgres;Database=booking_db;Username=booking_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
+      <<: [*service-env, *database-env]
       Grpc__Parking: http://parking:8081
-      Grpc__Payment: http://payment:8081
+      Grpc__Payment: http://payment:8081   # only called once payment implements CheckDebt (profile full)
+    depends_on: *infra-ready
+
+  # ---- optional: behind profiles ----
+
+  identity:
+    profiles: ["full"]
+    build: { context: .., dockerfile: services/identity/Dockerfile }
+    environment:
+      <<: [*service-env, *database-env]
     depends_on: *infra-ready
 
   payment:
+    profiles: ["full"]
     build: { context: .., dockerfile: services/payment/Dockerfile }
     environment:
-      <<: *service-env
-      ConnectionStrings__DefaultConnection: Host=postgres;Database=payment_db;Username=payment_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
+      <<: [*service-env, *database-env]
       Kestrel__Endpoints__Rest__Url: http://+:8080     # REST (HTTP/1.1)
       Kestrel__Endpoints__Grpc__Url: http://+:8081     # gRPC (HTTP/2), internal network only
       Vnpay__TmnCode: ${VNPAY_TMN_CODE}
@@ -107,16 +104,17 @@ services:
     depends_on: *infra-ready
 
   notification:
+    profiles: ["full"]
     build: { context: .., dockerfile: services/notification/Dockerfile }
     environment:
-      <<: *service-env
-      ConnectionStrings__DefaultConnection: Host=postgres;Database=notification_db;Username=notification_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
+      <<: [*service-env, *database-env]
       Smtp__Host: ${SMTP_HOST}
       Smtp__Username: ${SMTP_USER}
       Smtp__Password: ${SMTP_PASSWORD}
     depends_on: *infra-ready
 
   ai:
+    profiles: ["ai", "full"]
     build: { context: .., dockerfile: services/ai/Dockerfile }
     environment:
       GRPC_PORT: "8081"
@@ -125,6 +123,7 @@ services:
     depends_on: *infra-ready
 
   camera-simulator:
+    profiles: ["sim", "full"]
     build: ../edge/camera-simulator
     environment:
       MQTT_HOST: rabbitmq
@@ -134,7 +133,15 @@ services:
     depends_on:
       rabbitmq: { condition: service_healthy }
     restart: on-failure
-    profiles: ["sim"]
+
+  aspire-dashboard:
+    profiles: ["observability", "full"]
+    image: mcr.microsoft.com/dotnet/aspire-dashboard:13
+    environment:
+      ASPIRE_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"   # local development only; the UI listens on 127.0.0.1
+    ports:
+      - "127.0.0.1:18888:18888"   # dashboard UI
+      - "127.0.0.1:18889:18889"   # OTLP/gRPC, for services run outside Docker
 
 volumes:
   pgdata:

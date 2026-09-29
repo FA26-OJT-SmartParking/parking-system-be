@@ -4,7 +4,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace Parking.Persistence.Migrations
+namespace Payment.Persistence.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
@@ -12,8 +12,12 @@ namespace Parking.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(
+                name: "payment");
+
             migrationBuilder.CreateTable(
                 name: "InboxState",
+                schema: "payment",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -37,6 +41,7 @@ namespace Parking.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "OutboxState",
+                schema: "payment",
                 columns: table => new
                 {
                     OutboxId = table.Column<Guid>(type: "uuid", nullable: false),
@@ -52,21 +57,8 @@ namespace Parking.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "SlotStates",
-                columns: table => new
-                {
-                    LotId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Code = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
-                    Status = table.Column<string>(type: "character varying(32)", maxLength: 32, nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SlotStates", x => new { x.LotId, x.Code });
-                });
-
-            migrationBuilder.CreateTable(
                 name: "OutboxMessage",
+                schema: "payment",
                 columns: table => new
                 {
                     SequenceNumber = table.Column<long>(type: "bigint", nullable: false)
@@ -98,44 +90,52 @@ namespace Parking.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_OutboxMessage_InboxState_InboxMessageId_InboxConsumerId",
                         columns: x => new { x.InboxMessageId, x.InboxConsumerId },
+                        principalSchema: "payment",
                         principalTable: "InboxState",
                         principalColumns: new[] { "MessageId", "ConsumerId" });
                     table.ForeignKey(
                         name: "FK_OutboxMessage_OutboxState_OutboxId",
                         column: x => x.OutboxId,
+                        principalSchema: "payment",
                         principalTable: "OutboxState",
                         principalColumn: "OutboxId");
                 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_InboxState_Delivered",
+                schema: "payment",
                 table: "InboxState",
                 column: "Delivered");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxMessage_EnqueueTime",
+                schema: "payment",
                 table: "OutboxMessage",
                 column: "EnqueueTime");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxMessage_ExpirationTime",
+                schema: "payment",
                 table: "OutboxMessage",
                 column: "ExpirationTime");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxMessage_InboxMessageId_InboxConsumerId_SequenceNumber",
+                schema: "payment",
                 table: "OutboxMessage",
                 columns: new[] { "InboxMessageId", "InboxConsumerId", "SequenceNumber" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxMessage_OutboxId_SequenceNumber",
+                schema: "payment",
                 table: "OutboxMessage",
                 columns: new[] { "OutboxId", "SequenceNumber" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxState_Created",
+                schema: "payment",
                 table: "OutboxState",
                 column: "Created");
         }
@@ -144,16 +144,16 @@ namespace Parking.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "OutboxMessage");
+                name: "OutboxMessage",
+                schema: "payment");
 
             migrationBuilder.DropTable(
-                name: "SlotStates");
+                name: "InboxState",
+                schema: "payment");
 
             migrationBuilder.DropTable(
-                name: "InboxState");
-
-            migrationBuilder.DropTable(
-                name: "OutboxState");
+                name: "OutboxState",
+                schema: "payment");
         }
     }
 }

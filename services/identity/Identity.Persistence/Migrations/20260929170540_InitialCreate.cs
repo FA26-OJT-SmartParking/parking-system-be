@@ -12,8 +12,12 @@ namespace Identity.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(
+                name: "identity");
+
             migrationBuilder.CreateTable(
                 name: "InboxState",
+                schema: "identity",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -37,6 +41,7 @@ namespace Identity.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "OutboxState",
+                schema: "identity",
                 columns: table => new
                 {
                     OutboxId = table.Column<Guid>(type: "uuid", nullable: false),
@@ -53,6 +58,7 @@ namespace Identity.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "users",
+                schema: "identity",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -73,6 +79,7 @@ namespace Identity.Persistence.Migrations
 
             migrationBuilder.CreateTable(
                 name: "OutboxMessage",
+                schema: "identity",
                 columns: table => new
                 {
                     SequenceNumber = table.Column<long>(type: "bigint", nullable: false)
@@ -104,17 +111,20 @@ namespace Identity.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_OutboxMessage_InboxState_InboxMessageId_InboxConsumerId",
                         columns: x => new { x.InboxMessageId, x.InboxConsumerId },
+                        principalSchema: "identity",
                         principalTable: "InboxState",
                         principalColumns: new[] { "MessageId", "ConsumerId" });
                     table.ForeignKey(
                         name: "FK_OutboxMessage_OutboxState_OutboxId",
                         column: x => x.OutboxId,
+                        principalSchema: "identity",
                         principalTable: "OutboxState",
                         principalColumn: "OutboxId");
                 });
 
             migrationBuilder.CreateTable(
                 name: "user_accounts",
+                schema: "identity",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -137,12 +147,14 @@ namespace Identity.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_user_accounts_users_user_id",
                         column: x => x.user_id,
+                        principalSchema: "identity",
                         principalTable: "users",
                         principalColumn: "id");
                 });
 
             migrationBuilder.CreateTable(
                 name: "old_passwords",
+                schema: "identity",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -161,12 +173,14 @@ namespace Identity.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_old_passwords_user_accounts_user_account_id",
                         column: x => x.user_account_id,
+                        principalSchema: "identity",
                         principalTable: "user_accounts",
                         principalColumn: "id");
                 });
 
             migrationBuilder.CreateTable(
                 name: "user_account_sessions",
+                schema: "identity",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -187,65 +201,77 @@ namespace Identity.Persistence.Migrations
                     table.ForeignKey(
                         name: "FK_user_account_sessions_user_accounts_user_account_id",
                         column: x => x.user_account_id,
+                        principalSchema: "identity",
                         principalTable: "user_accounts",
                         principalColumn: "id");
                 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_InboxState_Delivered",
+                schema: "identity",
                 table: "InboxState",
                 column: "Delivered");
 
             migrationBuilder.CreateIndex(
                 name: "IX_old_passwords_user_account_id",
+                schema: "identity",
                 table: "old_passwords",
                 column: "user_account_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxMessage_EnqueueTime",
+                schema: "identity",
                 table: "OutboxMessage",
                 column: "EnqueueTime");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxMessage_ExpirationTime",
+                schema: "identity",
                 table: "OutboxMessage",
                 column: "ExpirationTime");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxMessage_InboxMessageId_InboxConsumerId_SequenceNumber",
+                schema: "identity",
                 table: "OutboxMessage",
                 columns: new[] { "InboxMessageId", "InboxConsumerId", "SequenceNumber" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxMessage_OutboxId_SequenceNumber",
+                schema: "identity",
                 table: "OutboxMessage",
                 columns: new[] { "OutboxId", "SequenceNumber" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxState_Created",
+                schema: "identity",
                 table: "OutboxState",
                 column: "Created");
 
             migrationBuilder.CreateIndex(
                 name: "IX_user_account_sessions_refresh_token_hash",
+                schema: "identity",
                 table: "user_account_sessions",
                 column: "refresh_token_hash");
 
             migrationBuilder.CreateIndex(
                 name: "IX_user_account_sessions_user_account_id",
+                schema: "identity",
                 table: "user_account_sessions",
                 column: "user_account_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_user_accounts_user_id",
+                schema: "identity",
                 table: "user_accounts",
                 column: "user_id",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_user_accounts_user_name",
+                schema: "identity",
                 table: "user_accounts",
                 column: "user_name",
                 unique: true);
@@ -255,25 +281,32 @@ namespace Identity.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "old_passwords");
+                name: "old_passwords",
+                schema: "identity");
 
             migrationBuilder.DropTable(
-                name: "OutboxMessage");
+                name: "OutboxMessage",
+                schema: "identity");
 
             migrationBuilder.DropTable(
-                name: "user_account_sessions");
+                name: "user_account_sessions",
+                schema: "identity");
 
             migrationBuilder.DropTable(
-                name: "InboxState");
+                name: "InboxState",
+                schema: "identity");
 
             migrationBuilder.DropTable(
-                name: "OutboxState");
+                name: "OutboxState",
+                schema: "identity");
 
             migrationBuilder.DropTable(
-                name: "user_accounts");
+                name: "user_accounts",
+                schema: "identity");
 
             migrationBuilder.DropTable(
-                name: "users");
+                name: "users",
+                schema: "identity");
         }
     }
 }

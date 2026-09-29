@@ -1,6 +1,6 @@
 namespace ParkingSystem.Contracts;
 
-// Events exchanged between services through RabbitMQ (see docs/huong-dan-setup-microservices.md, section 4.3).
+// Events exchanged between services through RabbitMQ (see docs/huong-dan-setup-microservices.md, section 4).
 // MassTransit publishes each type to an exchange named "ParkingSystem.Contracts:<TypeName>";
 // the Python AI service binds to those names, so renaming a type or this namespace is a breaking change.
 // Money is in VND (long), time is UTC.

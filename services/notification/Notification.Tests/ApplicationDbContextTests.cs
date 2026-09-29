@@ -29,4 +29,14 @@ public class ApplicationDbContextTests
         Assert.NotEmpty(db.Database.GetMigrations());
         Assert.False(db.Database.HasPendingModelChanges());
     }
+
+    [Fact]
+    public void Model_UsesTheSchemaOfTheService()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseNpgsql("Host=localhost").Options;
+        using var db = new ApplicationDbContext(options);
+
+        Assert.Equal("notification", db.Model.GetDefaultSchema());
+        Assert.All(db.Model.GetEntityTypes(), entity => Assert.Equal("notification", entity.GetSchema()));
+    }
 }

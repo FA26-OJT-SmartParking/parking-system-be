@@ -14,8 +14,10 @@ public static class PersistenceDependencyInjection
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
 
-        // PostgreSQL, one database per service
-        services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(connectionString));
+        // One database for the whole system, one schema per service; the migration history lives in the service's schema
+        services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(
+            connectionString,
+            npgsql => npgsql.MigrationsHistoryTable("__EFMigrationsHistory", DatabaseSchema.Name)));
 
         services.AddScoped(typeof(IRepository<>), typeof(GenericRepository<>));
         services.AddScoped<IUnitOfWork, UnitOfWork>();

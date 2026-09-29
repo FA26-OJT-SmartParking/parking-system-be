@@ -8,6 +8,7 @@ Cấu trúc mỗi service .NET (Domain, Application, Infrastructure, Persistence
 |---|---|---|---|
 | Project dùng chung | Không có | `shared/ParkingSystem.ServiceDefaults` (Serilog, OpenTelemetry, health check, kiểm tra JWT, lỗi 401/403, `MigrateDatabase`) và `shared/ParkingSystem.Contracts` (sự kiện RabbitMQ) | Mẫu chỉ có một service. Các phần này giống nhau ở mọi service; sự kiện phải dùng chung giữa các service và service AI (Python) |
 | Mã gRPC sinh ra | `.proto` và mã sinh nằm trong `Infrastructure/GRPC/Protos` của từng service | `.proto` nằm ở `grpc_proto/`, một project sinh mã cho cả server và client | Server và client của cùng một hợp đồng nằm ở hai service khác nhau; hai bản mã sinh cùng namespace sẽ trùng kiểu khi một project (như test tích hợp) tham chiếu cả hai. Một nơi duy nhất cũng tránh lệch hợp đồng |
+| Database | Một `DbContext` trên một database | Một database `parking_system` dùng chung, mỗi service một schema (`identity`, `parking`, ...) với `ApplicationDbContext`, migration và `__EFMigrationsHistory` riêng trong schema đó | Đây là dự án mẫu nên chỉ chạy một PostgreSQL với một database; schema riêng giữ ranh giới giữa các service và tránh trùng tên bảng outbox |
 | Routing | `api/[controller]` | Mỗi service tự phục vụ đường dẫn `/api/<service>/...`, gateway chuyển tiếp nguyên đường dẫn (trừ service AI bằng Python) | Đường dẫn công khai trùng đường dẫn của service nên Swagger và tài liệu API cùng một URL |
 
 ## Khác vì thư viện thương mại hoặc có lỗ hổng
