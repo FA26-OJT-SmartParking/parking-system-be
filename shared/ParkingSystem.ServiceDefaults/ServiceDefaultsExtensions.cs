@@ -1,4 +1,4 @@
-using System.Text;
+using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -59,9 +59,12 @@ public static class ServiceDefaultsExtensions
 
         builder.Services.AddHealthChecks();
 
-        // Tokens are issued by the identity service and checked by the gateway and by each service (BR-11 claims come later).
-        var signingKey = builder.Configuration["Jwt:SigningKey"]
-            ?? throw new InvalidOperationException("Jwt:SigningKey is not configured (set it in .env or with dotnet user-secrets).");
+        // Tokens are signed by the identity service with its private key (RS256, NFR-SEC-003);
+        // the gateway and every service only hold the public key, so none of them can issue a token.
+        var publicKey = builder.Configuration["Jwt:PublicKey"]
+            ?? throw new InvalidOperationException("Jwt:PublicKey is not configured (set it in deploy/.env or with dotnet user-secrets).");
+        var rsa = RSA.Create();
+        rsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(publicKey), out _);
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
@@ -70,7 +73,8 @@ public static class ServiceDefaultsExtensions
                     ValidIssuer = builder.Configuration["Jwt:Issuer"],
                     ValidateAudience = false,
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
+                    IssuerSigningKey = new RsaSecurityKey(rsa),
+                    ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
                 };
 
                 // 401 and 403 use the same body as every other error (see the API Design Template)

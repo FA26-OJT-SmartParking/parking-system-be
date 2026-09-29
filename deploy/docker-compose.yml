@@ -10,7 +10,7 @@ x-service-env: &service-env
   MessageBrokerSettings__UserName: ${RABBITMQ_USER}
   MessageBrokerSettings__Password: ${RABBITMQ_PASSWORD}
   Jwt__Issuer: parking-identity
-  Jwt__SigningKey: ${JWT_SIGNING_KEY}
+  Jwt__PublicKey: ${JWT_PUBLIC_KEY}
 
 x-infra-ready: &infra-ready
   postgres: { condition: service_healthy }
