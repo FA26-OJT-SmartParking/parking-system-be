@@ -64,20 +64,20 @@ services:
     ports: ["8088:8080"]   # 8080 is often taken on dev machines
     depends_on: [identity, parking, booking, payment, notification, ai]
 
-  # Connection strings disable GSS encryption: Npgsql tries it by default and the .NET runtime image
+  # One database for the whole system (each service works in its own schema). Connection strings disable GSS encryption: Npgsql tries it by default and the .NET runtime image
   # has no libgssapi_krb5, which logs an error on every connection. Kerberos is not used here.
   identity:
     build: { context: .., dockerfile: services/identity/Dockerfile }
     environment:
       <<: *service-env
-      ConnectionStrings__DefaultConnection: Host=postgres;Database=identity_db;Username=identity_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
+      ConnectionStrings__DefaultConnection: Host=postgres;Database=parking_system;Username=app_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
     depends_on: *infra-ready
 
   parking:
     build: { context: .., dockerfile: services/parking/Dockerfile }
     environment:
       <<: *service-env
-      ConnectionStrings__DefaultConnection: Host=postgres;Database=parking_db;Username=parking_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
+      ConnectionStrings__DefaultConnection: Host=postgres;Database=parking_system;Username=app_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
       Kestrel__Endpoints__Rest__Url: http://+:8080     # REST and SignalR (HTTP/1.1)
       Kestrel__Endpoints__Grpc__Url: http://+:8081     # gRPC (HTTP/2), internal network only
       Mqtt__Host: rabbitmq
@@ -89,7 +89,7 @@ services:
     build: { context: .., dockerfile: services/booking/Dockerfile }
     environment:
       <<: *service-env
-      ConnectionStrings__DefaultConnection: Host=postgres;Database=booking_db;Username=booking_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
+      ConnectionStrings__DefaultConnection: Host=postgres;Database=parking_system;Username=app_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
       Grpc__Parking: http://parking:8081
       Grpc__Payment: http://payment:8081
     depends_on: *infra-ready
@@ -98,7 +98,7 @@ services:
     build: { context: .., dockerfile: services/payment/Dockerfile }
     environment:
       <<: *service-env
-      ConnectionStrings__DefaultConnection: Host=postgres;Database=payment_db;Username=payment_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
+      ConnectionStrings__DefaultConnection: Host=postgres;Database=parking_system;Username=app_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
       Kestrel__Endpoints__Rest__Url: http://+:8080     # REST (HTTP/1.1)
       Kestrel__Endpoints__Grpc__Url: http://+:8081     # gRPC (HTTP/2), internal network only
       Vnpay__TmnCode: ${VNPAY_TMN_CODE}
@@ -110,7 +110,7 @@ services:
     build: { context: .., dockerfile: services/notification/Dockerfile }
     environment:
       <<: *service-env
-      ConnectionStrings__DefaultConnection: Host=postgres;Database=notification_db;Username=notification_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
+      ConnectionStrings__DefaultConnection: Host=postgres;Database=parking_system;Username=app_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
       Smtp__Host: ${SMTP_HOST}
       Smtp__Username: ${SMTP_USER}
       Smtp__Password: ${SMTP_PASSWORD}

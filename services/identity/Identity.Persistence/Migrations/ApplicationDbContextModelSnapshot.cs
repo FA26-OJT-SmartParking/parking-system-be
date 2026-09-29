@@ -17,6 +17,7 @@ namespace Identity.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("identity")
                 .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -70,7 +71,7 @@ namespace Identity.Persistence.Migrations
 
                     b.HasIndex("UserAccountId");
 
-                    b.ToTable("old_passwords", (string)null);
+                    b.ToTable("old_passwords", "identity");
                 });
 
             modelBuilder.Entity("Identity.Domain.Entities.User", b =>
@@ -125,7 +126,7 @@ namespace Identity.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("users", (string)null);
+                    b.ToTable("users", "identity");
                 });
 
             modelBuilder.Entity("Identity.Domain.Entities.UserAccount", b =>
@@ -201,7 +202,7 @@ namespace Identity.Persistence.Migrations
                     b.HasIndex("UserName")
                         .IsUnique();
 
-                    b.ToTable("user_accounts", (string)null);
+                    b.ToTable("user_accounts", "identity");
                 });
 
             modelBuilder.Entity("Identity.Domain.Entities.UserAccountSession", b =>
@@ -263,7 +264,7 @@ namespace Identity.Persistence.Migrations
 
                     b.HasIndex("UserAccountId");
 
-                    b.ToTable("user_account_sessions", (string)null);
+                    b.ToTable("user_account_sessions", "identity");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.InboxState", b =>
@@ -310,7 +311,7 @@ namespace Identity.Persistence.Migrations
 
                     b.HasIndex("Delivered");
 
-                    b.ToTable("InboxState");
+                    b.ToTable("InboxState", "identity");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>
@@ -401,7 +402,7 @@ namespace Identity.Persistence.Migrations
                     b.HasIndex("InboxMessageId", "InboxConsumerId", "SequenceNumber")
                         .IsUnique();
 
-                    b.ToTable("OutboxMessage");
+                    b.ToTable("OutboxMessage", "identity");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxState", b =>
@@ -431,7 +432,7 @@ namespace Identity.Persistence.Migrations
 
                     b.HasIndex("Created");
 
-                    b.ToTable("OutboxState");
+                    b.ToTable("OutboxState", "identity");
                 });
 
             modelBuilder.Entity("Identity.Domain.Entities.OldPassword", b =>
