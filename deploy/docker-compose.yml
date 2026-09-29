@@ -91,6 +91,7 @@ services:
       <<: *service-env
       ConnectionStrings__Db: Host=postgres;Database=booking_db;Username=booking_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
       Grpc__Parking: http://parking:8081
+      Grpc__Payment: http://payment:8081
     depends_on: *infra-ready
 
   payment:
@@ -98,6 +99,8 @@ services:
     environment:
       <<: *service-env
       ConnectionStrings__Db: Host=postgres;Database=payment_db;Username=payment_svc;Password=${SERVICE_DB_PASSWORD};GSS Encryption Mode=Disable
+      Kestrel__Endpoints__Rest__Url: http://+:8080     # REST (HTTP/1.1)
+      Kestrel__Endpoints__Grpc__Url: http://+:8081     # gRPC (HTTP/2), internal network only
       Vnpay__TmnCode: ${VNPAY_TMN_CODE}
       Vnpay__HashSecret: ${VNPAY_HASH_SECRET}
       Vnpay__ReturnUrl: ${PUBLIC_BASE_URL}/payment/return
