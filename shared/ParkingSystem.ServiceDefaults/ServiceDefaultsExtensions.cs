@@ -1,0 +1,134 @@
+using System.Text;
+using MassTransit;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
+using OpenTelemetry;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Sinks.OpenTelemetry;
+
+namespace ParkingSystem.ServiceDefaults;
+
+/// <summary>Setup shared by the gateway and every .NET service.</summary>
+public static class ServiceDefaultsExtensions
+{
+    /// <summary>
+    /// Serilog, OpenTelemetry traces and metrics, health checks and JWT validation.
+    /// Logs, traces and metrics go to OTEL_EXPORTER_OTLP_ENDPOINT (the Aspire Dashboard) when it is set.
+    /// </summary>
+    public static WebApplicationBuilder AddServiceDefaults(this WebApplicationBuilder builder, string serviceName)
+    {
+        var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+
+        builder.Services.AddSerilog(logger =>
+        {
+            logger.ReadFrom.Configuration(builder.Configuration)
+                .Enrich.FromLogContext()
+                .WriteTo.Console();
+            if (!string.IsNullOrEmpty(otlpEndpoint))
+            {
+                logger.WriteTo.OpenTelemetry(options =>
+                {
+                    options.Endpoint = otlpEndpoint;
+                    options.Protocol = OtlpProtocol.Grpc;
+                    options.ResourceAttributes = new Dictionary<string, object> { ["service.name"] = serviceName };
+                });
+            }
+        });
+
+        var telemetry = builder.Services.AddOpenTelemetry()
+            .ConfigureResource(resource => resource.AddService(serviceName))
+            .WithTracing(tracing => tracing
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddSource("MassTransit"))
+            .WithMetrics(metrics => metrics
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation());
+        if (!string.IsNullOrEmpty(otlpEndpoint))
+        {
+            telemetry.UseOtlpExporter();
+        }
+
+        builder.Services.AddHealthChecks();
+
+        // Tokens are issued by the identity service and checked by the gateway and by each service (BR-11 claims come later).
+        var signingKey = builder.Configuration["Jwt:SigningKey"]
+            ?? throw new InvalidOperationException("Jwt:SigningKey is not configured (set it in .env or with dotnet user-secrets).");
+        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options => options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                ValidateAudience = false,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
+            });
+        builder.Services.AddAuthorization();
+
+        return builder;
+    }
+
+    /// <summary>
+    /// MassTransit over RabbitMQ. Messages published inside a request are stored in the outbox of
+    /// <typeparamref name="TDbContext"/> and sent after SaveChanges; consumed messages go through the inbox,
+    /// so a message delivered twice is handled once.
+    /// </summary>
+    public static WebApplicationBuilder AddMessaging<TDbContext>(this WebApplicationBuilder builder)
+        where TDbContext : DbContext
+    {
+        builder.Services.AddMassTransit(x =>
+        {
+            x.AddConsumers(typeof(TDbContext).Assembly);
+            x.AddEntityFrameworkOutbox<TDbContext>(outbox =>
+            {
+                outbox.UsePostgres();
+                outbox.UseBusOutbox();
+            });
+            x.AddConfigureEndpointsCallback((context, _, endpoint) =>
+                endpoint.UseEntityFrameworkOutbox<TDbContext>(context));
+            x.UsingRabbitMq((context, bus) =>
+            {
+                bus.Host(builder.Configuration["RabbitMq:Host"] ?? "localhost", "/", host =>
+                {
+                    host.Username(builder.Configuration["RabbitMq:Username"] ?? "guest");
+                    host.Password(builder.Configuration["RabbitMq:Password"] ?? "guest");
+                });
+                bus.ConfigureEndpoints(context);
+            });
+        });
+
+        return builder;
+    }
+
+    /// <summary>Request logging, authentication, authorization and the /health endpoint.</summary>
+    public static WebApplication UseServiceDefaults(this WebApplication app)
+    {
+        app.UseSerilogRequestLogging();
+        app.UseAuthentication();
+        app.UseAuthorization();
+        app.MapHealthChecks("/health");
+        return app;
+    }
+
+    /// <summary>
+    /// Creates the tables on startup when running in Development.
+    /// Switch to EF Core migrations once the service has real business tables.
+    /// </summary>
+    public static WebApplication EnsureDatabaseCreated<TDbContext>(this WebApplication app)
+        where TDbContext : DbContext
+    {
+        if (app.Environment.IsDevelopment())
+        {
+            using var scope = app.Services.CreateScope();
+            scope.ServiceProvider.GetRequiredService<TDbContext>().Database.EnsureCreated();
+        }
+        return app;
+    }
+}

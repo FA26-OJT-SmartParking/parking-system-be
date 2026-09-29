@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/.venv/
+**/__pycache__/
+**/node_modules/
+.git/
+.env
+deploy/
+docs/
+**/*.Tests/
+tests/

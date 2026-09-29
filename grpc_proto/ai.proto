@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package ai.v1;
+
+option csharp_namespace = "ParkingSystem.Grpc.Ai";
+
+import "google/protobuf/timestamp.proto";
+
+// Served by the Python AI service (port 8081). Recommendation and forecast calls will be added here.
+service AiService {
+  // Latest slot status events the AI service received from RabbitMQ, oldest first.
+  rpc GetRecentSlotEvents (GetRecentSlotEventsRequest) returns (GetRecentSlotEventsResponse);
+}
+
+message GetRecentSlotEventsRequest {
+  int32 limit = 1; // 0 returns every buffered event
+}
+
+message GetRecentSlotEventsResponse {
+  repeated SlotEvent events = 1;
+}
+
+message SlotEvent {
+  string lot_id = 1;
+  string slot_code = 2;
+  string status = 3;
+  google.protobuf.Timestamp at = 4;
+}

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Booking.Application\Booking.Application.csproj" />
+    <ProjectReference Include="..\Booking.Infrastructure\Booking.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\shared\ParkingSystem.ServiceDefaults\ParkingSystem.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+</Project>
