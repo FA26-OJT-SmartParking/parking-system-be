@@ -232,17 +232,17 @@ Phiên bản gói ghi ở `Directory.Packages.props`. MassTransit giữ bản 8 
 
 ## 12. Quyết định còn mở (rà soát ngày 29/09)
 
-Trong `Downloads` có 3 tài liệu khác nhau về nghiệp vụ và kỹ thuật: `SRS.md` v1.1, `context_bai_do_xe_v1.2_microservice.md` và `context_v10.docx`. Cần hỏi mentor để chốt nguồn chuẩn. Các điểm sau có thể phải đổi ở khung này:
+Trong `Downloads` có 3 tài liệu khác nhau về nghiệp vụ và kỹ thuật: `SRS.md` v1.1, `context_bai_do_xe_v1.2_microservice.md` và `context_v10.docx`. Cần hỏi mentor để chốt nguồn chuẩn. Đề xuất giải pháp cho từng điểm, kèm mã yêu cầu dẫn chiếu, nằm ở `docs/quyet-dinh-nghiep-vu.md`. Các điểm sau có thể phải đổi ở khung này:
 
 | Điểm | Khung hiện tại | SRS v1.1 |
 |---|---|---|
-| Broker MQTT | Plugin MQTT của RabbitMQ | Mosquitto riêng, RabbitMQ chỉ cho sự kiện nghiệp vụ |
+| Broker MQTT | Plugin MQTT của RabbitMQ | Mosquitto (DP-05, HW-04); SRS không nhắc RabbitMQ |
 | JWT | HS256, một khóa dùng chung | RS256, Identity giữ khóa riêng, service kiểm tra bằng khóa công khai (NFR-SEC-003) |
-| Bản đồ và ETA | OSRM | Mapbox |
-| Thanh toán | VNPay | VNPay và MoMo, sandbox |
+| Bản đồ và ETA | OSRM | Google Maps Platform (DP-02) |
+| Thanh toán | VNPay | VNPay Sandbox và MoMo Sandbox khi demo (DP-04) |
 | Đặt chỗ | 2 loại, cọc cố định | BOOKING trả trước 100%, HOLD cọc 30% |
-| Quy tắc BR | BR-01 đến BR-24 (theo v10) | BR-01 đến BR-20 |
-| Route công khai của gateway | `/hubs/**`, `/api/ai/**` mở hoàn toàn | Chỉ mở dữ liệu công khai, phân quyền theo thao tác |
+| Quy tắc BR | BR-01 đến BR-24 (theo v10, thiếu BR-03) | BR-01 đến BR-20; một số mã trùng số nhưng khác nghĩa |
+| Route công khai của gateway | `/hubs/**`, `/api/ai/**` mở hoàn toàn | SRS không nêu route nào; chỉ có giới hạn tần suất 100 request/phút mỗi người dùng và 60 mỗi IP chưa đăng nhập (NFR-SEC-006) |
 
 Trong lúc chờ, chỉ làm phần không phụ thuộc các điểm trên (cấu trúc 5 tầng, gRPC, hạ tầng, FE).
 
