@@ -6,9 +6,9 @@ name: parking
 x-service-env: &service-env
   ASPNETCORE_ENVIRONMENT: Development
   OTEL_EXPORTER_OTLP_ENDPOINT: http://aspire-dashboard:18889
-  RabbitMq__Host: rabbitmq
-  RabbitMq__Username: ${RABBITMQ_USER}
-  RabbitMq__Password: ${RABBITMQ_PASSWORD}
+  MessageBrokerSettings__HostName: rabbitmq
+  MessageBrokerSettings__UserName: ${RABBITMQ_USER}
+  MessageBrokerSettings__Password: ${RABBITMQ_PASSWORD}
   Jwt__Issuer: parking-identity
   Jwt__SigningKey: ${JWT_SIGNING_KEY}
 

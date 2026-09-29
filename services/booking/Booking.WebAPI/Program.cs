@@ -7,7 +7,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults("booking");
 builder.Services.AddInfrastructureServices(builder.Configuration);
-builder.AddMessaging<ApplicationDbContext>();
 builder.Services.AddScoped<GetLotAvailabilityHandler>();
 builder.Services.AddControllers();
 

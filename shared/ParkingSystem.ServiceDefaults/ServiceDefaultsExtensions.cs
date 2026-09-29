@@ -1,5 +1,4 @@
 using System.Text;
-using MassTransit;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
@@ -71,38 +70,6 @@ public static class ServiceDefaultsExtensions
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
             });
         builder.Services.AddAuthorization();
-
-        return builder;
-    }
-
-    /// <summary>
-    /// MassTransit over RabbitMQ. Messages published inside a request are stored in the outbox of
-    /// <typeparamref name="TDbContext"/> and sent after SaveChanges; consumed messages go through the inbox,
-    /// so a message delivered twice is handled once.
-    /// </summary>
-    public static WebApplicationBuilder AddMessaging<TDbContext>(this WebApplicationBuilder builder)
-        where TDbContext : DbContext
-    {
-        builder.Services.AddMassTransit(x =>
-        {
-            x.AddConsumers(typeof(TDbContext).Assembly);
-            x.AddEntityFrameworkOutbox<TDbContext>(outbox =>
-            {
-                outbox.UsePostgres();
-                outbox.UseBusOutbox();
-            });
-            x.AddConfigureEndpointsCallback((context, _, endpoint) =>
-                endpoint.UseEntityFrameworkOutbox<TDbContext>(context));
-            x.UsingRabbitMq((context, bus) =>
-            {
-                bus.Host(builder.Configuration["RabbitMq:Host"] ?? "localhost", "/", host =>
-                {
-                    host.Username(builder.Configuration["RabbitMq:Username"] ?? "guest");
-                    host.Password(builder.Configuration["RabbitMq:Password"] ?? "guest");
-                });
-                bus.ConfigureEndpoints(context);
-            });
-        });
 
         return builder;
     }

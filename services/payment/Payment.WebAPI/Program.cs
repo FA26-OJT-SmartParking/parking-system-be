@@ -7,7 +7,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults("payment");
 builder.Services.AddInfrastructureServices(builder.Configuration);
-builder.AddMessaging<ApplicationDbContext>();
 builder.Services.AddGrpc();
 
 var app = builder.Build();

@@ -6,7 +6,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults("notification");
 builder.Services.AddInfrastructureServices(builder.Configuration);
-builder.AddMessaging<ApplicationDbContext>();
 
 var app = builder.Build();
 

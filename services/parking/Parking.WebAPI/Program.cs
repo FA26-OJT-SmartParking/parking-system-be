@@ -9,7 +9,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults("parking");
 builder.Services.AddInfrastructureServices(builder.Configuration);
-builder.AddMessaging<ApplicationDbContext>();
 builder.Services.AddGrpc();
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<MqttSlotListener>();
