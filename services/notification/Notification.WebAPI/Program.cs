@@ -1,16 +1,16 @@
 using Notification.Infrastructure;
-using Notification.Infrastructure.Persistence;
+using Notification.Persistence;
 using ParkingSystem.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults("notification");
-builder.Services.AddNotificationInfrastructure(builder.Configuration);
-builder.AddMessaging<NotificationDb>();
+builder.Services.AddInfrastructureServices(builder.Configuration);
+builder.AddMessaging<ApplicationDbContext>();
 
 var app = builder.Build();
 
 app.UseServiceDefaults();
-app.EnsureDatabaseCreated<NotificationDb>();
+app.EnsureDatabaseCreated<ApplicationDbContext>();
 
 app.Run();

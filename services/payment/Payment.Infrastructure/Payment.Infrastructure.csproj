@@ -4,13 +4,10 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
-    <PackageReference Include="MassTransit.EntityFrameworkCore" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Payment.Application\Payment.Application.csproj" />
+    <ProjectReference Include="..\Payment.Persistence\Payment.Persistence.csproj" />
     <ProjectReference Include="..\..\..\shared\ParkingSystem.Contracts\ParkingSystem.Contracts.csproj" />
   </ItemGroup>
 

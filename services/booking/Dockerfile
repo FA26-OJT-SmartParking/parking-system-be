@@ -10,6 +10,7 @@ COPY grpc_proto/ParkingSystem.Grpc.csproj grpc_proto/
 COPY services/booking/Booking.Domain/Booking.Domain.csproj services/booking/Booking.Domain/
 COPY services/booking/Booking.Application/Booking.Application.csproj services/booking/Booking.Application/
 COPY services/booking/Booking.Infrastructure/Booking.Infrastructure.csproj services/booking/Booking.Infrastructure/
+COPY services/booking/Booking.Persistence/Booking.Persistence.csproj services/booking/Booking.Persistence/
 COPY services/booking/Booking.WebAPI/Booking.WebAPI.csproj services/booking/Booking.WebAPI/
 RUN dotnet restore services/booking/Booking.WebAPI
 

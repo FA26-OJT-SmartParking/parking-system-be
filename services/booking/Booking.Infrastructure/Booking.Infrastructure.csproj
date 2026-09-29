@@ -5,13 +5,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
-    <PackageReference Include="MassTransit.EntityFrameworkCore" />
     <PackageReference Include="Grpc.Net.ClientFactory" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Booking.Application\Booking.Application.csproj" />
+    <ProjectReference Include="..\Booking.Persistence\Booking.Persistence.csproj" />
     <ProjectReference Include="..\..\..\shared\ParkingSystem.Contracts\ParkingSystem.Contracts.csproj" />
     <ProjectReference Include="..\..\..\grpc_proto\ParkingSystem.Grpc.csproj" />
   </ItemGroup>

@@ -1,16 +1,16 @@
 using Identity.Infrastructure;
-using Identity.Infrastructure.Persistence;
+using Identity.Persistence;
 using ParkingSystem.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults("identity");
-builder.Services.AddIdentityInfrastructure(builder.Configuration);
-builder.AddMessaging<IdentityDb>();
+builder.Services.AddInfrastructureServices(builder.Configuration);
+builder.AddMessaging<ApplicationDbContext>();
 
 var app = builder.Build();
 
 app.UseServiceDefaults();
-app.EnsureDatabaseCreated<IdentityDb>();
+app.EnsureDatabaseCreated<ApplicationDbContext>();
 
 app.Run();

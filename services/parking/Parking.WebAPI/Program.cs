@@ -2,14 +2,14 @@ using Parking.WebAPI.GrpcServices;
 using Parking.WebAPI.Hubs;
 using Parking.WebAPI.Workers;
 using Parking.Infrastructure;
-using Parking.Infrastructure.Persistence;
+using Parking.Persistence;
 using ParkingSystem.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults("parking");
-builder.Services.AddParkingInfrastructure(builder.Configuration);
-builder.AddMessaging<ParkingDb>();
+builder.Services.AddInfrastructureServices(builder.Configuration);
+builder.AddMessaging<ApplicationDbContext>();
 builder.Services.AddGrpc();
 builder.Services.AddSignalR();
 builder.Services.AddHostedService<MqttSlotListener>();
@@ -17,7 +17,7 @@ builder.Services.AddHostedService<MqttSlotListener>();
 var app = builder.Build();
 
 app.UseServiceDefaults();
-app.EnsureDatabaseCreated<ParkingDb>();
+app.EnsureDatabaseCreated<ApplicationDbContext>();
 app.MapGrpcService<ParkingGrpcService>();
 app.MapHub<ParkingHub>("/hubs/parking");
 

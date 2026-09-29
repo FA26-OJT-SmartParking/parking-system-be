@@ -10,6 +10,7 @@ COPY grpc_proto/ParkingSystem.Grpc.csproj grpc_proto/
 COPY services/parking/Parking.Domain/Parking.Domain.csproj services/parking/Parking.Domain/
 COPY services/parking/Parking.Application/Parking.Application.csproj services/parking/Parking.Application/
 COPY services/parking/Parking.Infrastructure/Parking.Infrastructure.csproj services/parking/Parking.Infrastructure/
+COPY services/parking/Parking.Persistence/Parking.Persistence.csproj services/parking/Parking.Persistence/
 COPY services/parking/Parking.WebAPI/Parking.WebAPI.csproj services/parking/Parking.WebAPI/
 RUN dotnet restore services/parking/Parking.WebAPI
 

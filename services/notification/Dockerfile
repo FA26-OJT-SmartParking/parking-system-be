@@ -10,6 +10,7 @@ COPY grpc_proto/ParkingSystem.Grpc.csproj grpc_proto/
 COPY services/notification/Notification.Domain/Notification.Domain.csproj services/notification/Notification.Domain/
 COPY services/notification/Notification.Application/Notification.Application.csproj services/notification/Notification.Application/
 COPY services/notification/Notification.Infrastructure/Notification.Infrastructure.csproj services/notification/Notification.Infrastructure/
+COPY services/notification/Notification.Persistence/Notification.Persistence.csproj services/notification/Notification.Persistence/
 COPY services/notification/Notification.WebAPI/Notification.WebAPI.csproj services/notification/Notification.WebAPI/
 RUN dotnet restore services/notification/Notification.WebAPI
 

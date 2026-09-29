@@ -10,6 +10,7 @@ COPY grpc_proto/ParkingSystem.Grpc.csproj grpc_proto/
 COPY services/identity/Identity.Domain/Identity.Domain.csproj services/identity/Identity.Domain/
 COPY services/identity/Identity.Application/Identity.Application.csproj services/identity/Identity.Application/
 COPY services/identity/Identity.Infrastructure/Identity.Infrastructure.csproj services/identity/Identity.Infrastructure/
+COPY services/identity/Identity.Persistence/Identity.Persistence.csproj services/identity/Identity.Persistence/
 COPY services/identity/Identity.WebAPI/Identity.WebAPI.csproj services/identity/Identity.WebAPI/
 RUN dotnet restore services/identity/Identity.WebAPI
 

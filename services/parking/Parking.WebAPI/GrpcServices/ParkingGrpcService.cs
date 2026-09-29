@@ -1,6 +1,6 @@
 using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
-using Parking.Application.Interfaces;
+using Parking.Application.Common.Interfaces.Persistence;
 using ParkingSystem.Grpc.Parking;
 
 namespace Parking.WebAPI.GrpcServices;

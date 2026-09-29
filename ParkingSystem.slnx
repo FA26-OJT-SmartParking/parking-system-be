@@ -13,6 +13,7 @@
     <Project Path="services/identity/Identity.Domain/Identity.Domain.csproj" />
     <Project Path="services/identity/Identity.Application/Identity.Application.csproj" />
     <Project Path="services/identity/Identity.Infrastructure/Identity.Infrastructure.csproj" />
+    <Project Path="services/identity/Identity.Persistence/Identity.Persistence.csproj" />
     <Project Path="services/identity/Identity.WebAPI/Identity.WebAPI.csproj" />
     <Project Path="services/identity/Identity.Tests/Identity.Tests.csproj" />
   </Folder>
@@ -20,6 +21,7 @@
     <Project Path="services/parking/Parking.Domain/Parking.Domain.csproj" />
     <Project Path="services/parking/Parking.Application/Parking.Application.csproj" />
     <Project Path="services/parking/Parking.Infrastructure/Parking.Infrastructure.csproj" />
+    <Project Path="services/parking/Parking.Persistence/Parking.Persistence.csproj" />
     <Project Path="services/parking/Parking.WebAPI/Parking.WebAPI.csproj" />
     <Project Path="services/parking/Parking.Tests/Parking.Tests.csproj" />
   </Folder>
@@ -27,6 +29,7 @@
     <Project Path="services/booking/Booking.Domain/Booking.Domain.csproj" />
     <Project Path="services/booking/Booking.Application/Booking.Application.csproj" />
     <Project Path="services/booking/Booking.Infrastructure/Booking.Infrastructure.csproj" />
+    <Project Path="services/booking/Booking.Persistence/Booking.Persistence.csproj" />
     <Project Path="services/booking/Booking.WebAPI/Booking.WebAPI.csproj" />
     <Project Path="services/booking/Booking.Tests/Booking.Tests.csproj" />
   </Folder>
@@ -34,6 +37,7 @@
     <Project Path="services/payment/Payment.Domain/Payment.Domain.csproj" />
     <Project Path="services/payment/Payment.Application/Payment.Application.csproj" />
     <Project Path="services/payment/Payment.Infrastructure/Payment.Infrastructure.csproj" />
+    <Project Path="services/payment/Payment.Persistence/Payment.Persistence.csproj" />
     <Project Path="services/payment/Payment.WebAPI/Payment.WebAPI.csproj" />
     <Project Path="services/payment/Payment.Tests/Payment.Tests.csproj" />
   </Folder>
@@ -41,6 +45,7 @@
     <Project Path="services/notification/Notification.Domain/Notification.Domain.csproj" />
     <Project Path="services/notification/Notification.Application/Notification.Application.csproj" />
     <Project Path="services/notification/Notification.Infrastructure/Notification.Infrastructure.csproj" />
+    <Project Path="services/notification/Notification.Persistence/Notification.Persistence.csproj" />
     <Project Path="services/notification/Notification.WebAPI/Notification.WebAPI.csproj" />
     <Project Path="services/notification/Notification.Tests/Notification.Tests.csproj" />
   </Folder>

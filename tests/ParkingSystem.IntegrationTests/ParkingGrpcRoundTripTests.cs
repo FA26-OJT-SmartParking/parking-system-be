@@ -4,8 +4,8 @@ using Booking.Infrastructure.Grpc;
 using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Parking.WebAPI.GrpcServices;
-using Parking.Application.Interfaces;
-using Parking.Domain;
+using Parking.Application.Common.Interfaces.Persistence;
+using Parking.Domain.Entities;
 using ParkingSystem.Grpc.Parking;
 
 namespace ParkingSystem.IntegrationTests;

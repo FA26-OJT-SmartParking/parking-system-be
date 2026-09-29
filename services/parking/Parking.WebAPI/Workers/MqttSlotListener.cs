@@ -5,9 +5,9 @@ using MQTTnet;
 using ParkingSystem.Contracts;
 
 using Parking.WebAPI.Hubs;
-using Parking.Application.Interfaces;
+using Parking.Application.Common.Interfaces.Persistence;
 using Parking.Infrastructure.Mqtt;
-using Parking.Infrastructure.Persistence;
+using Parking.Persistence;
 
 namespace Parking.WebAPI.Workers;
 
@@ -85,7 +85,7 @@ public class MqttSlotListener(
             .UpsertAsync(lotId, slotCode, reading.Status, reading.At, cancellationToken);
         await scope.ServiceProvider.GetRequiredService<IPublishEndpoint>().Publish(change, cancellationToken);
         // One transaction: the slot state and the outbox message are saved together, then the bus sends the message to RabbitMQ.
-        await scope.ServiceProvider.GetRequiredService<ParkingDb>().SaveChangesAsync(cancellationToken);
+        await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().SaveChangesAsync(cancellationToken);
 
         await hub.Clients.All.SendAsync("slotStatusChanged", change, cancellationToken);
     }

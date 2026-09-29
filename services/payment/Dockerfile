@@ -10,6 +10,7 @@ COPY grpc_proto/ParkingSystem.Grpc.csproj grpc_proto/
 COPY services/payment/Payment.Domain/Payment.Domain.csproj services/payment/Payment.Domain/
 COPY services/payment/Payment.Application/Payment.Application.csproj services/payment/Payment.Application/
 COPY services/payment/Payment.Infrastructure/Payment.Infrastructure.csproj services/payment/Payment.Infrastructure/
+COPY services/payment/Payment.Persistence/Payment.Persistence.csproj services/payment/Payment.Persistence/
 COPY services/payment/Payment.WebAPI/Payment.WebAPI.csproj services/payment/Payment.WebAPI/
 RUN dotnet restore services/payment/Payment.WebAPI
 
