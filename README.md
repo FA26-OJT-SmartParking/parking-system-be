@@ -4,7 +4,7 @@ Smart parking finder and management platform with a 3D lot view and AI recommend
 
 This repository holds the backend. The web app is in [parking-system-fe](https://github.com/FA26-OJT-SmartParking/parking-system-fe).
 
-> Status: project skeleton. Services start, expose `/health` and pass one sample event (camera → parking → ai). The Docker Compose stack has not been run end-to-end yet.
+> Status: project skeleton. All containers start with Docker Compose, services expose `/health`, and one sample event flows end to end (camera simulator → parking → RabbitMQ → ai).
 
 ## Planned features
 
