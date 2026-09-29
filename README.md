@@ -4,7 +4,7 @@ Smart parking finder and management platform with a 3D lot view and AI recommend
 
 This repository holds the backend. The web app is in [parking-system-fe](https://github.com/FA26-OJT-SmartParking/parking-system-fe).
 
-> Status: project skeleton. All containers start with Docker Compose, services expose `/health`, and one sample event flows end to end (camera simulator → parking → RabbitMQ → ai).
+> Status: project skeleton. Each service is split into Domain, Application, Infrastructure, API and Tests layers. Two sample flows exist: camera simulator → parking → RabbitMQ → ai, and booking → parking over gRPC (`GET /api/booking/lots/{lotId}/availability`). Some business and technical choices wait for the team to confirm the source-of-truth document, see `docs/huong-dan-setup-microservices.md` section 12.
 
 ## Planned features
 
@@ -18,12 +18,13 @@ This repository holds the backend. The web app is in [parking-system-fe](https:/
 
 | Part | Technology |
 |---|---|
-| Backend | ASP.NET Core (.NET 10) microservices, YARP gateway, SignalR |
+| Backend | ASP.NET Core (.NET 10) microservices, one layered solution per service (Domain, Application, Infrastructure, API, Tests), YARP gateway, SignalR |
 | AI | Python 3.12, FastAPI |
+| Service calls | gRPC (contracts in `grpc_proto/`) |
 | Messaging | RabbitMQ with MassTransit 8 (outbox/inbox); RabbitMQ MQTT plugin for cameras |
 | Data | PostgreSQL 17 (one database per service), Redis |
 | Observability | Serilog, OpenTelemetry, Aspire Dashboard |
-| Frontend | React + Three.js, separate repository [parking-system-fe](https://github.com/FA26-OJT-SmartParking/parking-system-fe) |
+| Frontend | Next.js + React + Three.js, separate repository [parking-system-fe](https://github.com/FA26-OJT-SmartParking/parking-system-fe) |
 | Run | Docker Compose; CI on GitHub Actions |
 
 ## Requirements
@@ -81,10 +82,11 @@ pytest
 
 | Path | Content |
 |---|---|
-| `contracts/` | Events shared between services |
-| `shared/` | Common setup for every .NET service (logging, tracing, health, JWT, messaging) |
+| `grpc_proto/` | gRPC contracts (`.proto`) and the project that generates the C# code |
+| `shared/` | `ParkingSystem.Contracts` (RabbitMQ events) and `ParkingSystem.ServiceDefaults` (logging, tracing, health, JWT, messaging for every .NET service) |
+| `tests/` | Integration tests that run real gRPC between services in memory |
 | `gateway/` | YARP API gateway |
-| `services/<name>/` | identity, parking, booking, payment, notification (`*.Api`, `*.Tests`, `Dockerfile`) and `ai` (Python) |
+| `services/<name>/` | identity, parking, booking, payment, notification (`*.Domain`, `*.Application`, `*.Infrastructure`, `*.API`, `*.Tests`, `Dockerfile`) and `ai` (Python, FastAPI + gRPC) |
 | `edge/camera-simulator/` | Publishes fake zone-camera readings over MQTT |
 | `deploy/` | Docker Compose stack, database init script, RabbitMQ plugins |
 | `docs/` | Setup guide and team workflow (Vietnamese) |
