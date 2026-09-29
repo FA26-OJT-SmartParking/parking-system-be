@@ -21,9 +21,9 @@ Camera AI / trình giả lập ──MQTT──► RabbitMQ (plugin MQTT) ──
 Dùng chung: PostgreSQL (1 container), Redis, Aspire Dashboard (log, trace, metrics)
 ```
 
-## 2. Frontend không cần tách
+## 2. Frontend ở repo riêng
 
-Chỉ backend chia thành microservices. Frontend giữ **một** ứng dụng React + Three.js, chỉ gọi gateway, nên backend chia bao nhiêu service cũng không ảnh hưởng.
+Chỉ backend chia thành microservices. Frontend là **một** ứng dụng React + Three.js ở repo riêng [`parking-system-fe`](https://github.com/FA26-OJT-SmartParking/parking-system-fe), chỉ gọi gateway, nên backend chia bao nhiêu service cũng không ảnh hưởng.
 
 - Chia thư mục theo tính năng: `auth`, `parking-3d`, `booking`, `payment`, `owner-dashboard`, `admin`.
 - Code Three.js để ở một module dùng chung cho sơ đồ 3D của khách và dashboard của chủ bãi.
@@ -128,7 +128,7 @@ parking đọc bằng thư viện MQTTnet (`services/parking/Parking.Api/MqttSlo
 ## 6. Cấu trúc repo
 
 ```
-parking-system/
+parking-system-be/
 ├─ contracts/ParkingSystem.Contracts/        # sự kiện dùng chung
 ├─ shared/ParkingSystem.ServiceDefaults/     # cấu hình chung cho mọi service .NET
 ├─ gateway/Gateway/                          # YARP
@@ -139,7 +139,6 @@ parking-system/
 │  │  └─ Dockerfile                          # build context là gốc repo
 │  └─ ai/                                    # Python FastAPI
 ├─ edge/camera-simulator/                    # Python, gửi MQTT giả lập
-├─ frontend/                                 # nhóm FE dựng React + Three.js
 ├─ deploy/                                   # docker-compose.yml, init-db.sh, enabled_plugins
 ├─ docs/                                     # tài liệu này, quy trình nhóm
 ├─ .github/                                  # workflow CI, mẫu pull request

@@ -1,6 +1,8 @@
-# Parking System
+# Parking System — Backend
 
 Smart parking finder and management platform with a 3D lot view and AI recommendations (OJT project). Drivers find the lot most likely to have a free spot when they arrive, reserve and pay; lot owners manage many lots on one platform.
+
+This repository holds the backend. The web app is in [parking-system-fe](https://github.com/FA26-OJT-SmartParking/parking-system-fe).
 
 > Status: project skeleton. Services start, expose `/health` and pass one sample event (camera → parking → ai). The Docker Compose stack has not been run end-to-end yet.
 
@@ -21,7 +23,7 @@ Smart parking finder and management platform with a 3D lot view and AI recommend
 | Messaging | RabbitMQ with MassTransit 8 (outbox/inbox); RabbitMQ MQTT plugin for cameras |
 | Data | PostgreSQL 17 (one database per service), Redis |
 | Observability | Serilog, OpenTelemetry, Aspire Dashboard |
-| Frontend | React + Three.js (to be scaffolded in `frontend/`) |
+| Frontend | React + Three.js, separate repository [parking-system-fe](https://github.com/FA26-OJT-SmartParking/parking-system-fe) |
 | Run | Docker Compose; CI on GitHub Actions |
 
 ## Requirements
