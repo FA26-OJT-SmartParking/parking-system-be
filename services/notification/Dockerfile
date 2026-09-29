@@ -10,17 +10,17 @@ COPY grpc_proto/ParkingSystem.Grpc.csproj grpc_proto/
 COPY services/notification/Notification.Domain/Notification.Domain.csproj services/notification/Notification.Domain/
 COPY services/notification/Notification.Application/Notification.Application.csproj services/notification/Notification.Application/
 COPY services/notification/Notification.Infrastructure/Notification.Infrastructure.csproj services/notification/Notification.Infrastructure/
-COPY services/notification/Notification.API/Notification.API.csproj services/notification/Notification.API/
-RUN dotnet restore services/notification/Notification.API
+COPY services/notification/Notification.WebAPI/Notification.WebAPI.csproj services/notification/Notification.WebAPI/
+RUN dotnet restore services/notification/Notification.WebAPI
 
 COPY shared/ shared/
 COPY grpc_proto/ grpc_proto/
 COPY services/notification/ services/notification/
-RUN dotnet publish services/notification/Notification.API -c Release -o /app --no-restore
+RUN dotnet publish services/notification/Notification.WebAPI -c Release -o /app --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /app .
 USER $APP_UID
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "Notification.API.dll"]
+ENTRYPOINT ["dotnet", "Notification.WebAPI.dll"]

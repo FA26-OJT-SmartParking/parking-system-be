@@ -4,12 +4,12 @@ using Microsoft.AspNetCore.SignalR;
 using MQTTnet;
 using ParkingSystem.Contracts;
 
-using Parking.API.Hubs;
+using Parking.WebAPI.Hubs;
 using Parking.Application.Interfaces;
 using Parking.Infrastructure.Mqtt;
 using Parking.Infrastructure.Persistence;
 
-namespace Parking.API.Workers;
+namespace Parking.WebAPI.Workers;
 
 /// <summary>
 /// Reads zone-camera events from the RabbitMQ MQTT plugin, publishes <see cref="SlotStatusChanged"/>

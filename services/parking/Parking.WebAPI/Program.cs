@@ -1,6 +1,6 @@
-using Parking.API.GrpcServices;
-using Parking.API.Hubs;
-using Parking.API.Workers;
+using Parking.WebAPI.GrpcServices;
+using Parking.WebAPI.Hubs;
+using Parking.WebAPI.Workers;
 using Parking.Infrastructure;
 using Parking.Infrastructure.Persistence;
 using ParkingSystem.ServiceDefaults;

@@ -3,7 +3,7 @@ using Booking.Application.Features.Availability;
 using Booking.Infrastructure.Grpc;
 using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection;
-using Parking.API.GrpcServices;
+using Parking.WebAPI.GrpcServices;
 using Parking.Application.Interfaces;
 using Parking.Domain;
 using ParkingSystem.Grpc.Parking;

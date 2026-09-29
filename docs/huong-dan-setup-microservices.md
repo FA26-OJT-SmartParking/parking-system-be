@@ -108,7 +108,7 @@ Camera và trình giả lập gửi MQTT tới RabbitMQ cổng 1883.
 | `lot/{lotId}/gate/in`, `lot/{lotId}/gate/out` | biển số, loại xe, độ tin cậy, thời điểm | booking (chưa làm) |
 | `lot/{lotId}/slot/{slotCode}` | `status`, `confidence`, `at` | parking |
 
-parking đọc bằng thư viện MQTTnet (`services/parking/Parking.API/Workers/MqttSlotListener.cs`). Mỗi tin nhắn được lưu thành trạng thái chỗ (bảng `SlotStates`), chuyển thành sự kiện `SlotStatusChanged` trong cùng một transaction (outbox) và đẩy lên sơ đồ 3D qua SignalR (`slotStatusChanged`).
+parking đọc bằng thư viện MQTTnet (`services/parking/Parking.WebAPI/Workers/MqttSlotListener.cs`). Mỗi tin nhắn được lưu thành trạng thái chỗ (bảng `SlotStates`), chuyển thành sự kiện `SlotStatusChanged` trong cùng một transaction (outbox) và đẩy lên sơ đồ 3D qua SignalR (`slotStatusChanged`).
 
 ## 5. Các luồng chính
 
@@ -147,7 +147,7 @@ parking-system-be/
 │  │  ├─ <Tên>.Domain/                       # entity, quy tắc nghiệp vụ (không phụ thuộc gì)
 │  │  ├─ <Tên>.Application/                  # Features (use case), Interfaces, Exceptions
 │  │  ├─ <Tên>.Infrastructure/               # EF Core, gRPC client, MQTT, RabbitMQ consumer
-│  │  ├─ <Tên>.API/                          # Program.cs, Controllers, gRPC server, SignalR hub
+│  │  ├─ <Tên>.WebAPI/                          # Program.cs, Controllers, gRPC server, SignalR hub
 │  │  ├─ <Tên>.Tests/                        # xUnit
 │  │  └─ Dockerfile                          # build context là gốc repo
 │  └─ ai/                                    # Python FastAPI + gRPC
@@ -192,7 +192,7 @@ Chạy một service .NET ngoài Docker để debug, ví dụ parking:
    - `RabbitMq:Host` = `localhost`, cùng `RabbitMq:Username` và `RabbitMq:Password` như trong `.env`. Riêng parking thêm `Mqtt:Host` = `localhost`, `Mqtt:Username`, `Mqtt:Password`.
    - `Jwt:SigningKey` như trong `.env`. Thiếu khóa này thì service dừng ngay khi khởi động.
    - `OTEL_EXPORTER_OTLP_ENDPOINT` = `http://localhost:18889` nếu muốn xem log và trace trên Aspire Dashboard.
-3. `dotnet run --project services/parking/Parking.API`, rồi gọi thẳng service ở cổng nó in ra. Gateway trong Docker vẫn trỏ tới container, nên request qua gateway không tới bản đang debug.
+3. `dotnet run --project services/parking/Parking.WebAPI`, rồi gọi thẳng service ở cổng nó in ra. Gateway trong Docker vẫn trỏ tới container, nên request qua gateway không tới bản đang debug.
 
 ## 8. Cấu hình chung (`shared/ParkingSystem.ServiceDefaults`)
 

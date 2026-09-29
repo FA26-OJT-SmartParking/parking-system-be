@@ -2,7 +2,7 @@ using Booking.Application.Exceptions;
 using Booking.Application.Features.Availability;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Booking.API.Controllers;
+namespace Booking.WebAPI.Controllers;
 
 [ApiController]
 [Route("lots")]

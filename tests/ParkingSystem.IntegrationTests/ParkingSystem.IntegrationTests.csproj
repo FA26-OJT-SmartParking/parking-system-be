@@ -22,8 +22,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\services\parking\Parking.API\Parking.API.csproj" />
-    <ProjectReference Include="..\..\services\payment\Payment.API\Payment.API.csproj" />
+    <ProjectReference Include="..\..\services\parking\Parking.WebAPI\Parking.WebAPI.csproj" />
+    <ProjectReference Include="..\..\services\payment\Payment.WebAPI\Payment.WebAPI.csproj" />
     <ProjectReference Include="..\..\services\booking\Booking.Infrastructure\Booking.Infrastructure.csproj" />
   </ItemGroup>
 

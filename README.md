@@ -86,7 +86,7 @@ pytest
 | `shared/` | `ParkingSystem.Contracts` (RabbitMQ events) and `ParkingSystem.ServiceDefaults` (logging, tracing, health, JWT, messaging for every .NET service) |
 | `tests/` | Integration tests that run real gRPC between services in memory |
 | `gateway/` | YARP API gateway |
-| `services/<name>/` | identity, parking, booking, payment, notification (`*.Domain`, `*.Application`, `*.Infrastructure`, `*.API`, `*.Tests`, `Dockerfile`) and `ai` (Python, FastAPI + gRPC) |
+| `services/<name>/` | identity, parking, booking, payment, notification (`*.Domain`, `*.Application`, `*.Infrastructure`, `*.WebAPI`, `*.Tests`, `Dockerfile`) and `ai` (Python, FastAPI + gRPC) |
 | `edge/camera-simulator/` | Publishes fake zone-camera readings over MQTT |
 | `deploy/` | Docker Compose stack, database init script, RabbitMQ plugins |
 | `docs/` | Setup guide and team workflow (Vietnamese) |

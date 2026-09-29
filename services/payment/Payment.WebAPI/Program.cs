@@ -1,4 +1,4 @@
-using Payment.API.GrpcServices;
+using Payment.WebAPI.GrpcServices;
 using Payment.Infrastructure;
 using Payment.Infrastructure.Persistence;
 using ParkingSystem.ServiceDefaults;
