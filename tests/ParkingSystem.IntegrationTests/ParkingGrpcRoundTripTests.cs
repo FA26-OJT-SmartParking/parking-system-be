@@ -1,12 +1,8 @@
+using Booking.Application.Exceptions;
 using Booking.Application.Features.Availability;
 using Booking.Infrastructure.Grpc;
 using Grpc.Core;
-using Grpc.Net.Client;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Parking.API.GrpcServices;
 using Parking.Application.Interfaces;
 using Parking.Domain;
@@ -49,44 +45,33 @@ public class ParkingGrpcRoundTripTests
         Assert.Equal(StatusCode.InvalidArgument, error.StatusCode);
     }
 
+    [Fact]
+    public async Task AssignSlot_NotImplementedYet_ServerAnswersUnimplemented()
+    {
+        await using var parking = await StartParkingAsync();
+        var client = new ParkingService.ParkingServiceClient(parking.Channel);
+
+        var error = await Assert.ThrowsAsync<RpcException>(async () =>
+            await client.AssignSlotAsync(new AssignSlotRequest { LotId = LotId.ToString(), ReservationId = Guid.NewGuid().ToString(), VehicleType = "Car" }));
+
+        Assert.Equal(StatusCode.Unimplemented, error.StatusCode);
+    }
+
+    [Fact]
+    public async Task AssignSlotAsync_NotImplementedYet_ClientReportsNotImplementedInsteadOfAssigning()
+    {
+        await using var parking = await StartParkingAsync();
+        var bookingSide = new ParkingGrpcClient(new ParkingService.ParkingServiceClient(parking.Channel));
+
+        await Assert.ThrowsAsync<RemoteCallNotImplementedException>(() =>
+            bookingSide.AssignSlotAsync(Guid.NewGuid(), LotId, "Car", CancellationToken.None));
+    }
+
     private static SlotState Slot(string code, string status) =>
         new() { LotId = LotId, Code = code, Status = status, UpdatedAt = DateTimeOffset.UtcNow };
 
-    private static async Task<RunningParkingService> StartParkingAsync(params SlotState[] slots)
-    {
-        var host = await new HostBuilder()
-            .ConfigureWebHost(web => web
-                .UseTestServer()
-                .ConfigureServices(services =>
-                {
-                    services.AddGrpc();
-                    services.AddSingleton<ISlotStateStore>(new FakeSlotStateStore(slots));
-                })
-                .Configure(app =>
-                {
-                    app.UseRouting();
-                    app.UseEndpoints(endpoints => endpoints.MapGrpcService<ParkingGrpcService>());
-                }))
-            .StartAsync();
-
-        var channel = GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
-        {
-            HttpHandler = host.GetTestServer().CreateHandler(),
-        });
-        return new RunningParkingService(host, channel);
-    }
-
-    private sealed class RunningParkingService(IHost host, GrpcChannel channel) : IAsyncDisposable
-    {
-        public GrpcChannel Channel { get; } = channel;
-
-        public async ValueTask DisposeAsync()
-        {
-            Channel.Dispose();
-            await host.StopAsync();
-            host.Dispose();
-        }
-    }
+    private static Task<GrpcTestHost> StartParkingAsync(params SlotState[] slots) =>
+        GrpcTestHost.StartAsync<ParkingGrpcService>(services => services.AddSingleton<ISlotStateStore>(new FakeSlotStateStore(slots)));
 
     private sealed class FakeSlotStateStore(SlotState[] slots) : ISlotStateStore
     {
