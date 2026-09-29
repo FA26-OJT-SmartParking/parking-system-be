@@ -10,6 +10,8 @@ import "google/protobuf/timestamp.proto";
 service ParkingService {
   // Current status of every slot of a lot, ordered by slot code.
   rpc GetLotSlots (GetLotSlotsRequest) returns (GetLotSlotsResponse);
+  // Assign a slot for an incoming vehicle (BR-15).
+  rpc AssignSlot (AssignSlotRequest) returns (AssignSlotReply);
 }
 
 message GetLotSlotsRequest {
@@ -24,4 +26,16 @@ message SlotInfo {
   string code = 1;   // for example "A-01"
   string status = 2; // "Available" or "Occupied"
   google.protobuf.Timestamp updated_at = 3;
+}
+
+message AssignSlotRequest {
+  string reservation_id = 1;
+  string lot_id = 2;
+  string vehicle_type = 3;
+}
+
+message AssignSlotReply {
+  bool success = 1;
+  string slot_code = 2;
+  string error_code = 3;
 }

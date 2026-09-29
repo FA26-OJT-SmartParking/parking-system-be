@@ -28,4 +28,9 @@ public class ParkingGrpcService(ISlotStateStore slots) : ParkingService.ParkingS
 
         return response;
     }
+
+    // Not implemented on purpose: answering "assigned" without assigning would let every vehicle in.
+    // Replace with the Application use case when slot assignment exists (BR-15).
+    public override Task<AssignSlotReply> AssignSlot(AssignSlotRequest request, ServerCallContext context) =>
+        throw new RpcException(new Status(StatusCode.Unimplemented, "AssignSlot is not implemented yet"));
 }
