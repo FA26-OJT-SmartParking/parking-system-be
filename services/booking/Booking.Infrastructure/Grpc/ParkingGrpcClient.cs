@@ -25,4 +25,30 @@ public class ParkingGrpcClient(ParkingService.ParkingServiceClient client) : IPa
             throw new ParkingUnavailableException("The parking service is not reachable.", ex);
         }
     }
+
+    public async Task<(bool Success, string SlotCode, string ErrorCode)> AssignSlotAsync(
+        Guid reservationId,
+        Guid lotId,
+        string vehicleType,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var response = await client.AssignSlotAsync(new AssignSlotRequest
+            {
+                ReservationId = reservationId.ToString(),
+                LotId = lotId.ToString(),
+                VehicleType = vehicleType
+            }, cancellationToken: cancellationToken);
+            return (response.Success, response.SlotCode, response.ErrorCode);
+        }
+        catch (RpcException ex) when (ex.StatusCode == StatusCode.Unimplemented)
+        {
+            throw new RemoteCallNotImplementedException("The parking service has not implemented AssignSlot yet.", ex);
+        }
+        catch (RpcException ex) when (ex.StatusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded)
+        {
+            throw new ParkingUnavailableException("The parking service is not reachable.", ex);
+        }
+    }
 }

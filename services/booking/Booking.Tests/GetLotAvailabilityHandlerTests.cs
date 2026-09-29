@@ -48,5 +48,8 @@ public class GetLotAvailabilityHandlerTests
 
         public Task<IReadOnlyList<SlotStatus>> GetLotSlotsAsync(Guid lotId, CancellationToken cancellationToken) =>
             Failure is null ? Task.FromResult<IReadOnlyList<SlotStatus>>(slots) : Task.FromException<IReadOnlyList<SlotStatus>>(Failure);
+
+        public Task<(bool Success, string SlotCode, string ErrorCode)> AssignSlotAsync(Guid reservationId, Guid lotId, string vehicleType, CancellationToken cancellationToken) =>
+            Failure is null ? Task.FromResult((true, "A-01", "")) : Task.FromException<(bool, string, string)>(Failure);
     }
 }
