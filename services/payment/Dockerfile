@@ -24,4 +24,5 @@ WORKDIR /app
 COPY --from=build /app .
 USER $APP_UID
 EXPOSE 8080
+EXPOSE 8081
 ENTRYPOINT ["dotnet", "Payment.WebAPI.dll"]
