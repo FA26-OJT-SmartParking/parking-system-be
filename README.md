@@ -90,7 +90,7 @@ pytest
 | `services/<name>/` | identity, parking, booking, payment, notification (`*.Domain`, `*.Application`, `*.Infrastructure`, `*.Persistence`, `*.WebAPI`, `*.Tests`, `Dockerfile`) and `ai` (Python, FastAPI + gRPC) |
 | `edge/camera-simulator/` | Publishes fake zone-camera readings over MQTT |
 | `deploy/` | Docker Compose stack, database init script, RabbitMQ plugins |
-| `docs/` | Setup guide and team workflow (Vietnamese) |
+| `docs/` | Start with `tong-quan-he-thong.md` (system overview for newcomers); also the setup guide, team workflow and template deviations (Vietnamese) |
 | `.github/` | GitHub Actions workflows and the pull request templates from the mentor guide |
 
 ## Team workflow
