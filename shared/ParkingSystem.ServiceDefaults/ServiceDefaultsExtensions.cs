@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -62,22 +63,41 @@ public static class ServiceDefaultsExtensions
         var signingKey = builder.Configuration["Jwt:SigningKey"]
             ?? throw new InvalidOperationException("Jwt:SigningKey is not configured (set it in .env or with dotnet user-secrets).");
         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options => options.TokenValidationParameters = new TokenValidationParameters
+            .AddJwtBearer(options =>
             {
-                ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                ValidateAudience = false,
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                    ValidateAudience = false,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
+                };
+
+                // 401 and 403 use the same body as every other error (see the API Design Template)
+                options.Events = new JwtBearerEvents
+                {
+                    OnChallenge = context =>
+                    {
+                        context.HandleResponse();
+                        return WriteErrorAsync(context.Response, StatusCodes.Status401Unauthorized, "You are not signed in. Sign in and try again.");
+                    },
+                    OnForbidden = context =>
+                        WriteErrorAsync(context.Response, StatusCodes.Status403Forbidden, "You do not have permission to do this."),
+                };
             });
         builder.Services.AddAuthorization();
 
         return builder;
     }
 
-    /// <summary>Request logging, authentication, authorization and the /health endpoint.</summary>
-    public static WebApplication UseServiceDefaults(this WebApplication app)
+    /// <summary>
+    /// Request logging, authentication, authorization and the /health endpoint.
+    /// <paramref name="afterRequestLogging"/> adds middleware that must run after logging and before authentication.
+    /// </summary>
+    public static WebApplication UseServiceDefaults(this WebApplication app, Action<IApplicationBuilder>? afterRequestLogging = null)
     {
         app.UseSerilogRequestLogging();
+        afterRequestLogging?.Invoke(app);
         app.UseAuthentication();
         app.UseAuthorization();
         app.MapHealthChecks("/health");
@@ -97,5 +117,11 @@ public static class ServiceDefaultsExtensions
             scope.ServiceProvider.GetRequiredService<TDbContext>().Database.EnsureCreated();
         }
         return app;
+    }
+
+    private static Task WriteErrorAsync(HttpResponse response, int statusCode, string message)
+    {
+        response.StatusCode = statusCode;
+        return response.WriteAsJsonAsync(new { result = (object?)null, isSuccess = false, statusCode, message });
     }
 }
