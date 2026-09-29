@@ -4,19 +4,23 @@ WORKDIR /src
 
 # Restore first so the package layer is cached until a project file changes
 COPY nuget.config Directory.Build.props Directory.Packages.props ./
-COPY contracts/ParkingSystem.Contracts/ParkingSystem.Contracts.csproj contracts/ParkingSystem.Contracts/
+COPY shared/ParkingSystem.Contracts/ParkingSystem.Contracts.csproj shared/ParkingSystem.Contracts/
 COPY shared/ParkingSystem.ServiceDefaults/ParkingSystem.ServiceDefaults.csproj shared/ParkingSystem.ServiceDefaults/
-COPY services/identity/Identity.Api/Identity.Api.csproj services/identity/Identity.Api/
-RUN dotnet restore services/identity/Identity.Api
+COPY grpc_proto/ParkingSystem.Grpc.csproj grpc_proto/
+COPY services/identity/Identity.Domain/Identity.Domain.csproj services/identity/Identity.Domain/
+COPY services/identity/Identity.Application/Identity.Application.csproj services/identity/Identity.Application/
+COPY services/identity/Identity.Infrastructure/Identity.Infrastructure.csproj services/identity/Identity.Infrastructure/
+COPY services/identity/Identity.API/Identity.API.csproj services/identity/Identity.API/
+RUN dotnet restore services/identity/Identity.API
 
-COPY contracts/ contracts/
 COPY shared/ shared/
-COPY services/identity/Identity.Api/ services/identity/Identity.Api/
-RUN dotnet publish services/identity/Identity.Api -c Release -o /app --no-restore
+COPY grpc_proto/ grpc_proto/
+COPY services/identity/ services/identity/
+RUN dotnet publish services/identity/Identity.API -c Release -o /app --no-restore
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /app .
 USER $APP_UID
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "Identity.Api.dll"]
+ENTRYPOINT ["dotnet", "Identity.API.dll"]

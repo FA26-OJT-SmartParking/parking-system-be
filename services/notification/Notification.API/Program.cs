@@ -1,12 +1,11 @@
-using Notification.Api;
-using Microsoft.EntityFrameworkCore;
+using Notification.Infrastructure;
+using Notification.Infrastructure.Persistence;
 using ParkingSystem.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults("notification");
-builder.Services.AddDbContext<NotificationDb>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Db")));
+builder.Services.AddNotificationInfrastructure(builder.Configuration);
 builder.AddMessaging<NotificationDb>();
 
 var app = builder.Build();

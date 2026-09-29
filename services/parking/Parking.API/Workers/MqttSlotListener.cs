@@ -4,7 +4,12 @@ using Microsoft.AspNetCore.SignalR;
 using MQTTnet;
 using ParkingSystem.Contracts;
 
-namespace Parking.Api;
+using Parking.API.Hubs;
+using Parking.Application.Interfaces;
+using Parking.Infrastructure.Mqtt;
+using Parking.Infrastructure.Persistence;
+
+namespace Parking.API.Workers;
 
 /// <summary>
 /// Reads zone-camera events from the RabbitMQ MQTT plugin, publishes <see cref="SlotStatusChanged"/>
@@ -76,8 +81,10 @@ public class MqttSlotListener(
         var change = new SlotStatusChanged(lotId, slotCode, reading.Status, reading.At);
 
         using var scope = scopeFactory.CreateScope();
+        await scope.ServiceProvider.GetRequiredService<ISlotStateStore>()
+            .UpsertAsync(lotId, slotCode, reading.Status, reading.At, cancellationToken);
         await scope.ServiceProvider.GetRequiredService<IPublishEndpoint>().Publish(change, cancellationToken);
-        // The bus outbox writes the message together with this save, then sends it to RabbitMQ.
+        // One transaction: the slot state and the outbox message are saved together, then the bus sends the message to RabbitMQ.
         await scope.ServiceProvider.GetRequiredService<ParkingDb>().SaveChangesAsync(cancellationToken);
 
         await hub.Clients.All.SendAsync("slotStatusChanged", change, cancellationToken);

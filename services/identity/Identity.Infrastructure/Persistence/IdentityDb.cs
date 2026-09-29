@@ -1,7 +1,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
-namespace Identity.Api;
+namespace Identity.Infrastructure.Persistence;
 
 public class IdentityDb(DbContextOptions<IdentityDb> options) : DbContext(options)
 {

@@ -1,4 +1,4 @@
-using Parking.Api;
+using Parking.Infrastructure.Mqtt;
 
 namespace Parking.Tests;
 

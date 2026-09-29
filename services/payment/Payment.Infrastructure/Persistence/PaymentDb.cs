@@ -1,7 +1,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
-namespace Payment.Api;
+namespace Payment.Infrastructure.Persistence;
 
 public class PaymentDb(DbContextOptions<PaymentDb> options) : DbContext(options)
 {

@@ -1,12 +1,11 @@
-using Identity.Api;
-using Microsoft.EntityFrameworkCore;
+using Identity.Infrastructure;
+using Identity.Infrastructure.Persistence;
 using ParkingSystem.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults("identity");
-builder.Services.AddDbContext<IdentityDb>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Db")));
+builder.Services.AddIdentityInfrastructure(builder.Configuration);
 builder.AddMessaging<IdentityDb>();
 
 var app = builder.Build();

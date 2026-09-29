@@ -1,4 +1,4 @@
-using Parking.Api;
+using Parking.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Parking.Tests;

@@ -1,12 +1,11 @@
-using Payment.Api;
-using Microsoft.EntityFrameworkCore;
+using Payment.Infrastructure;
+using Payment.Infrastructure.Persistence;
 using ParkingSystem.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults("payment");
-builder.Services.AddDbContext<PaymentDb>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Db")));
+builder.Services.AddPaymentInfrastructure(builder.Configuration);
 builder.AddMessaging<PaymentDb>();
 
 var app = builder.Build();

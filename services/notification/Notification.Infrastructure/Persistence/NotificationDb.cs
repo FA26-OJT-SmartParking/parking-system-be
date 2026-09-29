@@ -1,7 +1,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
-namespace Notification.Api;
+namespace Notification.Infrastructure.Persistence;
 
 public class NotificationDb(DbContextOptions<NotificationDb> options) : DbContext(options)
 {

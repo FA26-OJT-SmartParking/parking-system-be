@@ -1,4 +1,4 @@
-using Notification.Api;
+using Notification.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Notification.Tests;

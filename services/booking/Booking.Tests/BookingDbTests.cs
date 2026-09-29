@@ -1,4 +1,4 @@
-using Booking.Api;
+using Booking.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Booking.Tests;

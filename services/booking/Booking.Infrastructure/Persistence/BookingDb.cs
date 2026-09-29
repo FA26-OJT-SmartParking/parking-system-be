@@ -1,7 +1,7 @@
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 
-namespace Booking.Api;
+namespace Booking.Infrastructure.Persistence;
 
 public class BookingDb(DbContextOptions<BookingDb> options) : DbContext(options)
 {

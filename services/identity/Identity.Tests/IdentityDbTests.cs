@@ -1,4 +1,4 @@
-using Identity.Api;
+using Identity.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Identity.Tests;

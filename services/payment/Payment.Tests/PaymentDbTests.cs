@@ -1,4 +1,4 @@
-using Payment.Api;
+using Payment.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Payment.Tests;

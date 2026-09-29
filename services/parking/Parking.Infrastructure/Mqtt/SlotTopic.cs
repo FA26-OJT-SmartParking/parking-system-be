@@ -1,4 +1,4 @@
-namespace Parking.Api;
+namespace Parking.Infrastructure.Mqtt;
 
 /// <summary>MQTT topic used by zone cameras: <c>lot/{lotId}/slot/{slotCode}</c>.</summary>
 public static class SlotTopic
