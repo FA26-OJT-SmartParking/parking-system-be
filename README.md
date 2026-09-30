@@ -4,7 +4,7 @@ Smart parking finder and management platform with a 3D lot view and AI recommend
 
 This repository holds the backend. The web app is in [parking-system-fe](https://github.com/FA26-OJT-SmartParking/parking-system-fe).
 
-> Status: project skeleton. Each service is split into Domain, Application, Infrastructure, Persistence, WebAPI and Tests projects. Two sample flows exist: camera simulator → parking → RabbitMQ → ai, and booking → parking over gRPC (`GET /api/booking/lots/{lotId}/availability`). No business features yet: several business rules still conflict between the source documents, see `docs/quyet-dinh-nghiep-vu.md`.
+> Status: project skeleton. Each service is split into Domain, Application, Infrastructure, Persistence, WebAPI and Tests projects. Two sample flows exist: camera simulator → parking → RabbitMQ → ai, and booking → parking over gRPC (`GET /api/booking/lots/{lotId}/availability`). No business features yet: the business rules are still being agreed with the mentor.
 
 ## Planned features
 
@@ -90,12 +90,12 @@ pytest
 | `services/<name>/` | identity, parking, booking, payment, notification (`*.Domain`, `*.Application`, `*.Infrastructure`, `*.Persistence`, `*.WebAPI`, `*.Tests`, `Dockerfile`) and `ai` (Python, FastAPI + gRPC) |
 | `edge/camera-simulator/` | Publishes fake zone-camera readings over MQTT |
 | `deploy/` | Docker Compose stack, database init script, RabbitMQ plugins |
-| `docs/` | Start with `huong-dan-setup-microservices.md` (setup and system overview for newcomers); also the team workflow, template deviations and open business decisions (Vietnamese) |
+| `docs/api/` | API descriptions written with the mentor's API Design Template |
 | `.github/` | GitHub Actions workflows and the pull request templates from the mentor guide |
 
 ## Team workflow
 
-Branches follow the mentor's guide: `main`, `develop`, `features/Implementation_<UserStory>`, `features/Design_<UserStory>`, `hotfix/Bug_<UserStory>`, `release/sprint_x`. Commits are in English (team choice), one change per commit; every feature is merged through a pull request that uses the guide's template. Details, and which rules come from the guide and which are the team's own: `docs/workflow.md`.
+Branches, commits and pull requests follow the mentor's guide. The rules, and the team's backend conventions, are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Team
 
