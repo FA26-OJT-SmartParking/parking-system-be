@@ -95,7 +95,7 @@ pytest
 
 ## Team workflow
 
-Branches follow the mentor's guide: `main`, `develop`, `features/Implementation_<UserStory>`, `features/Design_<UserStory>`, `hotfix/Bug_<UserStory>`, `release/sprint_x`. Commits are in English (team choice), one change per commit; every feature is merged through a pull request that uses the guide's template. Details, and which rules come from the guide and which are the team's own: `docs/workflow.md`.
+Branches, commits and pull requests follow the mentor's guide. The rules, and the team's backend conventions, are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Team
 
