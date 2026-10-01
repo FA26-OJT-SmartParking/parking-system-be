@@ -36,4 +36,7 @@
   <data name="NotFoundMessage" xml:space="preserve">
     <value>The requested resource was not found.</value>
   </data>
+  <data name="SampleUserRetrieved" xml:space="preserve">
+    <value>Sample user retrieved successfully.</value>
+  </data>
 </root>
