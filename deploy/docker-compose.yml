@@ -89,6 +89,9 @@ services:
     build: { context: .., dockerfile: services/identity/Dockerfile }
     environment:
       <<: [*service-env, *database-env]
+      Jwt__PrivateKey: ${JWT_PRIVATE_KEY}         # only identity can sign tokens
+      Seed__UserName: ${SEED_USER_NAME:-}         # optional development account, see .env.example
+      Seed__Password: ${SEED_USER_PASSWORD:-}
     depends_on: *infra-ready
 
   payment:
