@@ -1,4 +1,4 @@
-"""Publishes fake zone-camera readings over MQTT until real cameras are available."""
+"""Publishes fake slot-sensor readings over MQTT until real IoT devices are available."""
 import json
 import os
 import random
@@ -16,7 +16,7 @@ SLOTS = [f"A-{number:02d}" for number in range(1, 11)]
 
 
 def main() -> None:
-    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="camera-simulator")
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="iot-simulator")
     client.username_pw_set(USER, PASSWORD)
     client.connect(HOST, 1883)
     client.loop_start()

@@ -1,6 +1,6 @@
 namespace Parking.Infrastructure.Mqtt;
 
-/// <summary>MQTT topic used by zone cameras: <c>lot/{lotId}/slot/{slotCode}</c>.</summary>
+/// <summary>MQTT topic used by IoT devices: <c>lot/{lotId}/slot/{slotCode}</c>.</summary>
 public static class SlotTopic
 {
     public const string Filter = "lot/+/slot/+";

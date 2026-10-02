@@ -3,7 +3,7 @@
 ---
 ## Overview
 
-Returns how many slots of a parking lot are free and how many are occupied, and the status of every slot. The booking service asks the parking service over gRPC (`GetLotSlots`), which keeps the latest status reported by the cameras.
+Returns how many slots of a parking lot are free and how many are occupied, and the status of every slot. The booking service asks the parking service over gRPC (`GetLotSlots`), which keeps the latest status reported by the IoT devices.
 
 The API is public: guests can browse lots without signing in. Clients call the API gateway (`http://localhost:8088` in development). Every response, success or error, has the same four fields: `result`, `isSuccess`, `statusCode`, `message`.
 

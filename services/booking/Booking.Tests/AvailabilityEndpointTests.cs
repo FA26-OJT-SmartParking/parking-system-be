@@ -109,7 +109,7 @@ public class AvailabilityEndpointTests
                     services.AddControllers()
                         .AddApplicationPart(typeof(AvailabilityController).Assembly)
                         .ConfigureApiBehaviorOptions(options => options.InvalidModelStateResponseFactory = ErrorExceptionHandler.InvalidModelState);
-                    services.AddApplicationServices(new ConfigurationBuilder().Build());
+                    services.AddApplicationServices();
                     services.AddSingleton(unitOfGrpc);
                     services.AddTransient<ExceptionHandlingMiddleware>();
                     services.AddRouting();

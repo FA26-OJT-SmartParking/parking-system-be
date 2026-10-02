@@ -33,5 +33,5 @@ def health() -> dict:
 
 @app.get("/events/recent")
 def events_recent() -> list[dict]:
-    """Last SlotStatusChanged events received, newest last. Used to check the camera -> parking -> ai flow."""
+    """Last SlotStatusChanged events received, newest last. Used to check the IoT simulator -> parking -> ai flow."""
     return list(recent_events)

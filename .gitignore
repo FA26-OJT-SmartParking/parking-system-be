@@ -21,6 +21,7 @@ dist/
 # Secrets and local settings
 .env
 *.env.local
+*.bak
 
 # IDE and OS
 .idea/

@@ -1,6 +1,6 @@
 # Local development stack. Run from this folder: copy ../.env.example to .env, fill it in, then
 #   docker compose up --build                     core stack: postgres, rabbitmq, gateway, parking, booking
-#   docker compose --profile sim up --build       + camera simulator (fake slot readings over MQTT)
+#   docker compose --profile sim up --build       + IoT simulator (fake slot readings over MQTT)
 #   docker compose --profile ai up --build        + AI service
 #   docker compose --profile observability up ... + Aspire Dashboard (also set OTEL_EXPORTER_OTLP_ENDPOINT in .env)
 #   docker compose --profile full up --build      everything, including the services that are still empty shells
@@ -51,7 +51,7 @@ services:
     ports:
       - "127.0.0.1:15672:15672"   # management UI
       - "127.0.0.1:5672:5672"     # AMQP, for services run outside Docker
-      - "1883:1883"               # MQTT, reachable from cameras on the LAN
+      - "1883:1883"               # MQTT, reachable from IoT devices on the LAN
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -123,9 +123,9 @@ services:
       OSRM_URL: https://router.project-osrm.org
     depends_on: *infra-ready
 
-  camera-simulator:
+  iot-simulator:
     profiles: ["sim", "full"]
-    build: ../edge/camera-simulator
+    build: ../edge/iot-simulator
     environment:
       MQTT_HOST: rabbitmq
       MQTT_USER: ${RABBITMQ_USER}

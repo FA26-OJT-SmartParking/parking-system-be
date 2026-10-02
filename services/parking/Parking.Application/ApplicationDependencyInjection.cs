@@ -1,14 +1,13 @@
 using FluentValidation;
 using Parking.Application.Common.Behaviors;
 using MediatR;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Parking.Application;
 
 public static class ApplicationDependencyInjection
 {
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         var assembly = typeof(ApplicationDependencyInjection).Assembly;
 

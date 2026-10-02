@@ -1,6 +1,7 @@
 name: dotnet
 
 # Checks the code format, builds the whole solution and runs every test project: the five services, the gateway and the gRPC integration tests.
+# A second job builds every Docker image of the stack, so a broken Dockerfile or project path is caught here and not on someone's machine.
 on:
   push:
     branches: [main, develop]
@@ -11,6 +12,8 @@ on:
       - grpc_proto/**
       - gateway/**
       - tests/**
+      - edge/**
+      - deploy/**
       - ParkingSystem.slnx
       - Directory.Build.props
       - Directory.Packages.props
@@ -24,6 +27,8 @@ on:
       - grpc_proto/**
       - gateway/**
       - tests/**
+      - edge/**
+      - deploy/**
       - ParkingSystem.slnx
       - Directory.Build.props
       - Directory.Packages.props
@@ -48,3 +53,10 @@ jobs:
       - run: dotnet format whitespace ParkingSystem.slnx --verify-no-changes
       - run: dotnet format style ParkingSystem.slnx --verify-no-changes --severity warn
       - run: dotnet test ParkingSystem.slnx -c Release
+
+  docker-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # No .env here: compose only warns about the empty variables, and a build does not need them
+      - run: docker compose -f deploy/docker-compose.yml --profile full build

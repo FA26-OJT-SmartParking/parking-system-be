@@ -1,6 +1,6 @@
 namespace Parking.Domain.Entities;
 
-/// <summary>Latest known status of one slot, kept up to date from camera readings.</summary>
+/// <summary>Latest known status of one slot, kept up to date from device readings.</summary>
 public class SlotState
 {
     public Guid LotId { get; set; }

@@ -3,7 +3,7 @@ using Parking.Application.Usecase.UpdateSlotStatus;
 
 namespace Parking.Infrastructure.Mqtt;
 
-/// <summary>Turns a zone-camera message (topic and JSON payload) into the command that updates the slot.</summary>
+/// <summary>Turns a device message (topic and JSON payload) into the command that updates the slot.</summary>
 public static class SlotMessageParser
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -41,6 +41,6 @@ public static class SlotMessageParser
         return true;
     }
 
-    /// <summary>Payload sent by a zone camera or the simulator.</summary>
+    /// <summary>Payload sent by an IoT device or the simulator.</summary>
     private record SlotReading(string? Status, DateTimeOffset At);
 }
