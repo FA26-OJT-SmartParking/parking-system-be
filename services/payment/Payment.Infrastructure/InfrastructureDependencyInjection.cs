@@ -14,7 +14,6 @@ public static class InfrastructureDependencyInjection
         services.AddPersistenceServices(configuration);
         services.AddScoped<IEventPublisher, EventPublisher>();
         services.AddMessageBroker(configuration);
-        services.AddGrpc();
 
         return services;
     }

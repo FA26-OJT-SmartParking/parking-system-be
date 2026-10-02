@@ -1,5 +1,6 @@
 using Parking.Application.Common.Interfaces.MessageBroker;
 using Parking.Infrastructure.MessageBroker;
+using Parking.Infrastructure.Mqtt;
 using Parking.Persistence;
 using MassTransit;
 using Microsoft.Extensions.Configuration;
@@ -15,6 +16,7 @@ public static class InfrastructureDependencyInjection
         services.AddScoped<IEventPublisher, EventPublisher>();
         services.AddMessageBroker(configuration);
         services.AddGrpc();
+        services.AddHostedService<MqttSlotListener>();
 
         return services;
     }

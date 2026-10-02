@@ -1,5 +1,4 @@
 using Payment.Application;
-using Payment.Infrastructure.GRPC.Services;
 using Payment.Infrastructure;
 using Payment.Persistence;
 using Payment.WebAPI.Middleware;
@@ -38,7 +37,6 @@ if (app.Environment.IsDevelopment())
 app.UseServiceDefaults(application => application.UseMiddleware<ExceptionHandlingMiddleware>());
 app.UseStatusCodePages(ErrorExceptionHandler.WriteStatusCodeBody);
 app.MigrateDatabase<ApplicationDbContext>();
-app.MapGrpcService<PaymentGrpcService>();
 app.MapControllers();
 
 app.Run();
