@@ -15,7 +15,7 @@ public class SlotStateStore(ApplicationDbContext db) : ISlotStateStore
             return;
         }
 
-        // Cameras can deliver out of order: keep the newest reading
+        // Devices can deliver out of order: keep the newest reading
         if (at >= slot.UpdatedAt)
         {
             slot.Status = status;

@@ -16,7 +16,7 @@ builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options => options.InvalidModelStateResponseFactory = ErrorExceptionHandler.InvalidModelState);
 
 builder.Services.AddInfrastructureServices(builder.Configuration);
-builder.Services.AddApplicationServices(builder.Configuration);
+builder.Services.AddApplicationServices();
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<ISlotStatusNotifier, SlotStatusNotifier>();
 

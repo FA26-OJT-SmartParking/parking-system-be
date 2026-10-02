@@ -4,7 +4,7 @@ Smart parking finder and management platform with a 3D lot view and AI recommend
 
 This repository holds the backend. The web app is in [parking-system-fe](https://github.com/FA26-OJT-SmartParking/parking-system-fe).
 
-> Status: project skeleton. Each service is split into Domain, Application, Infrastructure, Persistence, WebAPI and Tests projects. Two sample flows exist: camera simulator → parking → RabbitMQ → ai, and booking → parking over gRPC (`GET /api/booking/lots/{lotId}/availability`). No business features yet: the business rules are still being agreed with the mentor.
+> Status: project skeleton. Each service is split into Domain, Application, Infrastructure, Persistence, WebAPI and Tests projects. Two sample flows exist: IoT simulator → parking → RabbitMQ → ai, and booking → parking over gRPC (`GET /api/booking/lots/{lotId}/availability`). No business features yet: the business rules are still being agreed with the mentor.
 
 ## Planned features
 
@@ -21,7 +21,7 @@ This repository holds the backend. The web app is in [parking-system-fe](https:/
 | Backend | ASP.NET Core (.NET 10) microservices, one solution per service in the layout of the mentor's `Project.CleanArchitecture` template (Domain, Application, Infrastructure, Persistence, WebAPI, Tests), MediatR and FluentValidation, YARP gateway, SignalR |
 | AI | Python 3.12, FastAPI |
 | Service calls | gRPC (contracts in `grpc_proto/`) |
-| Messaging | RabbitMQ with MassTransit 8 (outbox/inbox); RabbitMQ MQTT plugin for cameras |
+| Messaging | RabbitMQ with MassTransit 8 (outbox/inbox); RabbitMQ MQTT plugin for IoT devices |
 | Data | PostgreSQL 17: one database, one schema per service |
 | Observability | Serilog, OpenTelemetry, Aspire Dashboard (optional) |
 | Frontend | Next.js + React + Three.js, separate repository [parking-system-fe](https://github.com/FA26-OJT-SmartParking/parking-system-fe) |
@@ -41,7 +41,7 @@ cp ../.env.example .env
 docker compose up --build
 ```
 
-Fill in `deploy/.env` before starting. By default only the core stack runs (postgres, rabbitmq, gateway, parking, booking). Add `--profile sim` for the camera simulator, `--profile ai` for the AI service, `--profile observability` for the Aspire Dashboard (also set `OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889` in `.env`), or `--profile full` for everything.
+Fill in `deploy/.env` before starting. By default only the core stack runs (postgres, rabbitmq, gateway, parking, booking). Add `--profile sim` for the IoT simulator, `--profile ai` for the AI service, `--profile observability` for the Aspire Dashboard (also set `OTEL_EXPORTER_OTLP_ENDPOINT=http://aspire-dashboard:18889` in `.env`), or `--profile full` for everything.
 
 | URL | What |
 |---|---|
@@ -88,7 +88,7 @@ pytest
 | `tests/` | Integration tests that run real gRPC between services in memory |
 | `gateway/` | YARP API gateway |
 | `services/<name>/` | identity, parking, booking, payment, notification (`*.Domain`, `*.Application`, `*.Infrastructure`, `*.Persistence`, `*.WebAPI`, `*.Tests`, `Dockerfile`) and `ai` (Python, FastAPI + gRPC) |
-| `edge/camera-simulator/` | Publishes fake zone-camera readings over MQTT |
+| `edge/iot-simulator/` | Publishes fake slot-sensor readings over MQTT |
 | `deploy/` | Docker Compose stack, database init script, RabbitMQ plugins |
 | `docs/api/` | API descriptions written with the mentor's API Design Template |
 | `.github/` | GitHub Actions workflows and the pull request templates from the mentor guide |

@@ -9,7 +9,7 @@ using MQTTnet;
 namespace Parking.Infrastructure.Mqtt;
 
 /// <summary>
-/// Reads zone-camera events from the RabbitMQ MQTT plugin and sends each one to the UpdateSlotStatus use case.
+/// Reads device events from the RabbitMQ MQTT plugin and sends each one to the UpdateSlotStatus use case.
 /// It only connects, reads and forwards: saving, publishing and notifying happen in the handler.
 /// </summary>
 public class MqttSlotListener(
