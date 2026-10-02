@@ -10,8 +10,6 @@ internal sealed class FakeUnitOfGrpc(params SlotStatusDto[] slots) : IUnitOfGrpc
 
     public IParkingGrpcClient ParkingGrpcClient => new FakeParkingGrpcClient(slots, Failure);
 
-    public IPaymentGrpcClient PaymentGrpcClient => throw new NotSupportedException("Not used by these tests");
-
     private sealed class FakeParkingGrpcClient(SlotStatusDto[] slots, Exception? failure) : IParkingGrpcClient
     {
         public Task<IReadOnlyList<SlotStatusDto>> GetLotSlotsAsync(Guid lotId, CancellationToken cancellationToken) =>

@@ -27,7 +27,7 @@ public class ParkingGrpcRoundTripTests
             Slot("A-01", "Occupied"), Slot("A-02", "Available"), Slot("A-03", "Available"));
         var bookingSide = new ParkingGrpcClient(new ParkingService.ParkingServiceClient(parking.Channel));
 
-        var availability = await new GetLotAvailabilityQueryHandler(new UnitOfGrpc(bookingSide, new UnusedPaymentGrpcClient()))
+        var availability = await new GetLotAvailabilityQueryHandler(new UnitOfGrpc(bookingSide))
             .Handle(new GetLotAvailabilityQuery(LotId), CancellationToken.None);
 
         Assert.Equal(3, availability.Total);
@@ -83,11 +83,5 @@ public class ParkingGrpcRoundTripTests
 
         public Task<IReadOnlyList<SlotState>> GetByLotAsync(Guid lotId, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<SlotState>>(slots.Where(slot => slot.LotId == lotId).OrderBy(slot => slot.Code).ToList());
-    }
-
-    private sealed class UnusedPaymentGrpcClient : IPaymentGrpcClient
-    {
-        public Task<(bool HasDebt, long Amount)> CheckDebtAsync(string plateNumber, Guid lotId, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("The parking test does not call the payment service");
     }
 }
