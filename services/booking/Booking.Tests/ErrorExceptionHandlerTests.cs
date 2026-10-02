@@ -31,6 +31,25 @@ public class ErrorExceptionHandlerTests
     }
 
     [Fact]
+    public void HandleException_ParkingUnavailable_Is503()
+    {
+        var (statusCode, body) = ErrorExceptionHandler.HandleException(new ParkingUnavailableException("Parking is down.", new Exception()));
+
+        Assert.Equal(503, statusCode);
+        Assert.Equal("Parking is down.", body.Message);
+    }
+
+    [Fact]
+    public void HandleException_NewAppExceptionType_IsAnsweredWithItsOwnStatusWithoutChangingTheHandler()
+    {
+        var (statusCode, body) = ErrorExceptionHandler.HandleException(new ConflictException("Slot already taken."));
+
+        Assert.Equal(409, statusCode);
+        Assert.Equal(409, body.StatusCode);
+        Assert.Equal("Slot already taken.", body.Message);
+    }
+
+    [Fact]
     public void HandleException_RemoteCallNotImplemented_Is501()
     {
         var (statusCode, _) = ErrorExceptionHandler.HandleException(new RemoteCallNotImplementedException("not yet", new Exception()));
@@ -46,4 +65,6 @@ public class ErrorExceptionHandlerTests
         Assert.Equal(500, statusCode);
         Assert.DoesNotContain("secret", body.Message);
     }
+
+    private sealed class ConflictException(string message) : AppException(message, 409);
 }
