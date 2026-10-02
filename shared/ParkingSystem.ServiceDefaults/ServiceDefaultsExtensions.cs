@@ -25,7 +25,7 @@ public static class ServiceDefaultsExtensions
     }
 
     /// <summary>
-    /// Request logging, authentication, authorization and the /health endpoint.
+    /// Request logging, authentication, authorization and the /health endpoint (open to everyone, Docker checks it).
     /// <paramref name="afterRequestLogging"/> adds middleware that must run after logging and before authentication.
     /// </summary>
     public static WebApplication UseServiceDefaults(this WebApplication app, Action<IApplicationBuilder>? afterRequestLogging = null)
@@ -34,7 +34,7 @@ public static class ServiceDefaultsExtensions
         afterRequestLogging?.Invoke(app);
         app.UseAuthentication();
         app.UseAuthorization();
-        app.MapHealthChecks("/health");
+        app.MapHealthChecks("/health").AllowAnonymous();
         return app;
     }
 }

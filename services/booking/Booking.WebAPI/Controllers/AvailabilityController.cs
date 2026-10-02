@@ -2,6 +2,7 @@ using Booking.Application;
 using Booking.Application.Usecase.Availability;
 using Booking.WebAPI.Controllers.Base;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Booking.WebAPI.Controllers;
@@ -10,6 +11,7 @@ namespace Booking.WebAPI.Controllers;
 public class AvailabilityController(IMediator mediator) : ApiControllerBase(mediator)
 {
     /// <summary>Free and occupied slots of a lot. Public: guests can browse lots.</summary>
+    [AllowAnonymous]
     [HttpGet("{lotId:guid}/availability")]
     public async Task<IActionResult> Get(Guid lotId, CancellationToken cancellationToken)
     {

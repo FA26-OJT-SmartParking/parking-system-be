@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -43,7 +44,9 @@ internal static class JwtAuthenticationExtensions
                         WriteErrorAsync(context.Response, StatusCodes.Status403Forbidden, "You do not have permission to do this."),
                 };
             });
-        builder.Services.AddAuthorization();
+        // Secure by default: an endpoint is open only when it says so with [AllowAnonymous] or .AllowAnonymous()
+        builder.Services.AddAuthorizationBuilder()
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 
         return builder;
     }

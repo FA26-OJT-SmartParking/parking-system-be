@@ -29,7 +29,7 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi().AllowAnonymous();
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
@@ -42,8 +42,9 @@ if (app.Environment.IsDevelopment())
 app.UseServiceDefaults(application => application.UseMiddleware<ExceptionHandlingMiddleware>());
 app.UseStatusCodePages(ErrorExceptionHandler.WriteStatusCodeBody);
 app.MigrateDatabase<ApplicationDbContext>();
-app.MapGrpcService<ParkingGrpcService>();
-app.MapHub<ParkingHub>("/hubs/parking");
+// Called by the other services inside the Docker network only; the gateway does not route to it
+app.MapGrpcService<ParkingGrpcService>().AllowAnonymous();
+app.MapHub<ParkingHub>("/hubs/parking").AllowAnonymous();
 app.MapControllers();
 
 app.Run();
