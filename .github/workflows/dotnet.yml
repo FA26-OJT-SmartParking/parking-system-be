@@ -1,25 +1,34 @@
-name: parking
+name: dotnet
 
+# Builds the whole solution and runs every test project: the five services, the gateway and the gRPC integration tests.
 on:
   push:
     branches: [main, develop]
     paths:
-      - services/parking/**
-      - grpc_proto/**
+      - services/**
+      - '!services/ai/**'
       - shared/**
+      - grpc_proto/**
+      - gateway/**
+      - tests/**
+      - ParkingSystem.slnx
       - Directory.Build.props
       - Directory.Packages.props
       - nuget.config
-      - .github/workflows/parking.yml
+      - .github/workflows/dotnet.yml
   pull_request:
     paths:
-      - services/parking/**
-      - grpc_proto/**
+      - services/**
+      - '!services/ai/**'
       - shared/**
+      - grpc_proto/**
+      - gateway/**
+      - tests/**
+      - ParkingSystem.slnx
       - Directory.Build.props
       - Directory.Packages.props
       - nuget.config
-      - .github/workflows/parking.yml
+      - .github/workflows/dotnet.yml
 
 permissions:
   contents: read
@@ -36,4 +45,4 @@ jobs:
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
-      - run: dotnet test services/parking/Parking.Tests -c Release
+      - run: dotnet test ParkingSystem.slnx -c Release
