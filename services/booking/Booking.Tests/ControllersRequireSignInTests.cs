@@ -3,37 +3,40 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using ParkingSystem.ServiceDefaults;
 
 namespace Booking.Tests;
 
-/// <summary>An endpoint asks for a signed-in user unless it says it is public.</summary>
-public class SecureByDefaultTests
+/// <summary>Controllers ask for a signed-in user unless an action says it is public, and unknown routes still answer 404.</summary>
+public class ControllersRequireSignInTests
 {
     private const string Issuer = "test-issuer";
 
     [Fact]
-    public async Task Get_EndpointMarkedAllowAnonymous_Returns200WithoutAToken()
+    public async Task Get_ActionMarkedAllowAnonymous_Returns200WithoutAToken()
     {
         using var identityKey = RSA.Create(2048);
         await using var app = await StartAsync(identityKey);
 
-        var response = await app.GetTestClient().GetAsync("/open");
+        var response = await app.GetTestClient().GetAsync("/probe/open");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
-    public async Task Get_EndpointWithoutAnyMark_Returns401WithTheStandardBody()
+    public async Task Get_ActionWithoutAnyMark_Returns401WithTheStandardBody()
     {
         using var identityKey = RSA.Create(2048);
         await using var app = await StartAsync(identityKey);
 
-        var response = await app.GetTestClient().GetAsync("/closed");
+        var response = await app.GetTestClient().GetAsync("/probe/closed");
         using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -42,26 +45,37 @@ public class SecureByDefaultTests
     }
 
     [Fact]
-    public async Task Get_EndpointWithoutAnyMark_Returns200WithATokenFromTheIdentityService()
+    public async Task Get_ActionWithoutAnyMark_Returns200WithATokenFromTheIdentityService()
     {
         using var identityKey = RSA.Create(2048);
         await using var app = await StartAsync(identityKey);
 
-        var response = await Send(app, "/closed", Token(identityKey));
+        var response = await Send(app, "/probe/closed", Token(identityKey));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]
-    public async Task Get_EndpointWithoutAnyMark_Returns401WithATokenSignedByAnotherKey()
+    public async Task Get_ActionWithoutAnyMark_Returns401WithATokenSignedByAnotherKey()
     {
         using var identityKey = RSA.Create(2048);
         using var otherKey = RSA.Create(2048);
         await using var app = await StartAsync(identityKey);
 
-        var response = await Send(app, "/closed", Token(otherKey));
+        var response = await Send(app, "/probe/closed", Token(otherKey));
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Get_UnknownRoute_StillReturns404ForAnonymousCallers()
+    {
+        using var identityKey = RSA.Create(2048);
+        await using var app = await StartAsync(identityKey);
+
+        var response = await app.GetTestClient().GetAsync("/probe/nothing-here");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [Fact]
@@ -99,12 +113,26 @@ public class SecureByDefaultTests
             ["Jwt:Issuer"] = Issuer,
         });
         builder.AddServiceDefaults("test");
+        builder.Services.AddControllers().AddApplicationPart(typeof(ProbeController).Assembly);
 
         var app = builder.Build();
         app.UseServiceDefaults();
-        app.MapGet("/open", () => "open").AllowAnonymous();
-        app.MapGet("/closed", () => "closed");
+        // The same line every service has in Program.cs
+        app.MapControllers().RequireAuthorization();
         await app.StartAsync();
         return app;
     }
+}
+
+/// <summary>A controller with one public and one unmarked action. ASP.NET only finds controllers that are not nested.</summary>
+[ApiController]
+[Route("probe")]
+public class ProbeController : ControllerBase
+{
+    [AllowAnonymous]
+    [HttpGet("open")]
+    public IActionResult Open() => Ok("open");
+
+    [HttpGet("closed")]
+    public IActionResult Closed() => Ok("closed");
 }

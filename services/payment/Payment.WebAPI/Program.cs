@@ -24,7 +24,7 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi().AllowAnonymous();
+    app.MapOpenApi();
     app.UseSwagger();
     app.UseSwaggerUI(options =>
     {
@@ -37,6 +37,7 @@ if (app.Environment.IsDevelopment())
 app.UseServiceDefaults(application => application.UseMiddleware<ExceptionHandlingMiddleware>());
 app.UseStatusCodePages(ErrorExceptionHandler.WriteStatusCodeBody);
 app.MigrateDatabase<ApplicationDbContext>();
-app.MapControllers();
+// Every controller asks for a signed-in user; a public API says so with [AllowAnonymous]
+app.MapControllers().RequireAuthorization();
 
 app.Run();
