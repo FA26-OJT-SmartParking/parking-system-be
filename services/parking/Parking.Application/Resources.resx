@@ -36,4 +36,13 @@
   <data name="NotFoundMessage" xml:space="preserve">
     <value>The requested resource was not found.</value>
   </data>
+  <data name="LotIdIsRequired" xml:space="preserve">
+    <value>lotId is missing.</value>
+  </data>
+  <data name="SlotCodeIsRequired" xml:space="preserve">
+    <value>slotCode is missing.</value>
+  </data>
+  <data name="StatusIsRequired" xml:space="preserve">
+    <value>status is missing.</value>
+  </data>
 </root>

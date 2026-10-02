@@ -38,4 +38,10 @@ public class Resources
     public static string InvalidRequestBodyMessage => ResourceManager.GetString("InvalidRequestBodyMessage", Culture) ?? string.Empty;
 
     public static string NotFoundMessage => ResourceManager.GetString("NotFoundMessage", Culture) ?? string.Empty;
+
+    public static string LotIdIsRequired => ResourceManager.GetString("LotIdIsRequired", Culture) ?? string.Empty;
+
+    public static string SlotCodeIsRequired => ResourceManager.GetString("SlotCodeIsRequired", Culture) ?? string.Empty;
+
+    public static string StatusIsRequired => ResourceManager.GetString("StatusIsRequired", Culture) ?? string.Empty;
 }
