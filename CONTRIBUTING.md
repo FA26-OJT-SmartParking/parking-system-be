@@ -39,6 +39,7 @@
 - Mỗi API mới có file mô tả ở `docs/api/<tên>.md` theo `API Design Template`, làm trên nhánh Design.
 - Service chỉ đọc ghi schema database của mình; cần dữ liệu của service khác thì gọi gRPC (hợp đồng ở `grpc_proto/`) hoặc nghe sự kiện RabbitMQ.
 - Đổi mô hình dữ liệu phải kèm migration; test sẽ báo lỗi nếu thiếu.
+- Tạo migration trong service của mình: `dotnet ef migrations add <Tên> --project services/<service>/<Service>.Persistence`. Không sửa migration đã gộp. Hai người cùng thêm migration vào một service thì người gộp sau xóa migration của mình, cập nhật `develop` rồi tạo lại, để file snapshot không xung đột.
 - Không đổi tên kiểu hoặc namespace trong `shared/ParkingSystem.Contracts`: service AI bám theo tên exchange sinh ra từ đó.
 - Giữ MassTransit 8 và MediatR 12.5 (bản mới hơn là bản thương mại); không dùng AutoMapper, map DTO viết tay.
 - Listener hoặc consumer chạy nền (MQTT, RabbitMQ) đặt ở `X.Infrastructure`: chỉ kết nối, đọc và phân tích tin nhắn rồi gửi Command qua MediatR. Nghiệp vụ nằm ở Handler trong `X.Application`; WebAPI không dùng trực tiếp DbContext hay MassTransit.
