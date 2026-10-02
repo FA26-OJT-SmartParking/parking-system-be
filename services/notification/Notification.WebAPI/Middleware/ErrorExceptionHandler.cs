@@ -15,8 +15,8 @@ public static class ErrorExceptionHandler
     {
         // The first failed rule is reported, as in the template's examples ("userName is missing.")
         ValidationException validation => Failure(StatusCodes.Status400BadRequest, validation.Errors.FirstOrDefault()?.ErrorMessage ?? Resources.CommonErrorMessage),
-        NotFoundException notFound => Failure(StatusCodes.Status404NotFound, notFound.Message),
-        ServiceUnavailableException unavailable => Failure(StatusCodes.Status503ServiceUnavailable, unavailable.Message),
+        // NotFoundException, ServiceUnavailableException and any exception added later carry their own status
+        AppException app => Failure(app.StatusCode, app.Message),
         NotImplementedException => Failure(StatusCodes.Status501NotImplemented, Resources.NotImplementedExceptionMessage),
         DbUpdateException => Failure(StatusCodes.Status400BadRequest, Resources.DbUpdateExceptionMessage),
         // Never send the message of an unexpected exception to the client: it can contain internals

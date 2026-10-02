@@ -1,7 +1,7 @@
 using Parking.Application;
+using Parking.Application.Common.Interfaces.Services;
 using Parking.Infrastructure.GRPC.Services;
 using Parking.WebAPI.Hubs;
-using Parking.WebAPI.Workers;
 using Parking.Infrastructure;
 using Parking.Persistence;
 using Parking.WebAPI.Middleware;
@@ -18,7 +18,7 @@ builder.Services.AddControllers()
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddApplicationServices(builder.Configuration);
 builder.Services.AddSignalR();
-builder.Services.AddHostedService<MqttSlotListener>();
+builder.Services.AddSingleton<ISlotStatusNotifier, SlotStatusNotifier>();
 
 builder.Services.AddOpenApi();
 builder.Services.AddEndpointsApiExplorer();
@@ -44,6 +44,7 @@ app.UseStatusCodePages(ErrorExceptionHandler.WriteStatusCodeBody);
 app.MigrateDatabase<ApplicationDbContext>();
 app.MapGrpcService<ParkingGrpcService>();
 app.MapHub<ParkingHub>("/hubs/parking");
-app.MapControllers();
+// Every controller asks for a signed-in user; a public API says so with [AllowAnonymous]
+app.MapControllers().RequireAuthorization();
 
 app.Run();

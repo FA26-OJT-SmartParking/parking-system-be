@@ -1,28 +1,22 @@
-using System.Text.Json;
-using MassTransit;
-using Microsoft.AspNetCore.SignalR;
+using FluentValidation;
+using MediatR;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using MQTTnet;
-using ParkingSystem.Contracts;
 
-using Parking.WebAPI.Hubs;
-using Parking.Application.Common.Interfaces.Persistence;
-using Parking.Infrastructure.Mqtt;
-using Parking.Persistence;
-
-namespace Parking.WebAPI.Workers;
+namespace Parking.Infrastructure.Mqtt;
 
 /// <summary>
-/// Reads zone-camera events from the RabbitMQ MQTT plugin, publishes <see cref="SlotStatusChanged"/>
-/// through the outbox and pushes the change to the 3D map.
+/// Reads zone-camera events from the RabbitMQ MQTT plugin and sends each one to the UpdateSlotStatus use case.
+/// It only connects, reads and forwards: saving, publishing and notifying happen in the handler.
 /// </summary>
 public class MqttSlotListener(
     IConfiguration configuration,
     IServiceScopeFactory scopeFactory,
-    IHubContext<ParkingHub> hub,
     ILogger<MqttSlotListener> logger) : BackgroundService
 {
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         using var client = new MqttClientFactory().CreateMqttClient();
@@ -61,39 +55,26 @@ public class MqttSlotListener(
 
     private async Task HandleAsync(MqttApplicationMessage message, CancellationToken cancellationToken)
     {
-        if (!SlotTopic.TryParse(message.Topic, out var lotId, out var slotCode))
+        if (!SlotMessageParser.TryParse(message.Topic, message.ConvertPayloadToString(), out var command, out var error))
         {
-            logger.LogWarning("Ignoring MQTT message on unexpected topic {Topic}", message.Topic);
+            logger.LogWarning("Ignoring MQTT message on {Topic}: {Reason}", message.Topic, error);
             return;
         }
 
-        SlotReading? reading;
         try
         {
-            reading = JsonSerializer.Deserialize<SlotReading>(message.ConvertPayloadToString(), Json);
+            // A new scope per message: the handler, its DbContext and the outbox share it
+            using var scope = scopeFactory.CreateScope();
+            await scope.ServiceProvider.GetRequiredService<IMediator>().Send(command!, cancellationToken);
         }
-        catch (JsonException ex)
+        catch (ValidationException ex)
         {
-            logger.LogWarning(ex, "Ignoring malformed payload on {Topic}", message.Topic);
-            return;
+            logger.LogWarning("Ignoring MQTT message on {Topic}: {Reason}", message.Topic, ex.Errors.FirstOrDefault()?.ErrorMessage);
         }
-        if (reading is null)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            return;
+            // One bad message must not stop the listener
+            logger.LogError(ex, "Could not handle the MQTT message on {Topic}", message.Topic);
         }
-
-        var change = new SlotStatusChanged(lotId, slotCode, reading.Status, reading.At);
-
-        using var scope = scopeFactory.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<ISlotStateStore>()
-            .UpsertAsync(lotId, slotCode, reading.Status, reading.At, cancellationToken);
-        await scope.ServiceProvider.GetRequiredService<IPublishEndpoint>().Publish(change, cancellationToken);
-        // One transaction: the slot state and the outbox message are saved together, then the bus sends the message to RabbitMQ.
-        await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().SaveChangesAsync(cancellationToken);
-
-        await hub.Clients.All.SendAsync("slotStatusChanged", change, cancellationToken);
     }
-
-    /// <summary>Payload sent by a zone camera or the simulator.</summary>
-    private record SlotReading(string Status, DateTimeOffset At);
 }

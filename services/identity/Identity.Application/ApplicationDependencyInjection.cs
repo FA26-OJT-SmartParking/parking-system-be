@@ -1,5 +1,8 @@
 using FluentValidation;
 using Identity.Application.Common.Behaviors;
+using Identity.Application.Common.Interfaces.Services;
+using Identity.Application.Common.Models.JwT;
+using Identity.Application.Services;
 using MediatR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +20,18 @@ public static class ApplicationDependencyInjection
 
         // Every request goes through validation before its handler runs
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+
+
+        var jwtOptions = new JwtOptions();
+        configuration.GetSection("Jwt").Bind(jwtOptions);
+        if (string.IsNullOrWhiteSpace(jwtOptions.PrivateKey))
+        {
+            throw new InvalidOperationException("Jwt:PrivateKey is not configured. Generate a key pair with deploy/generate-jwt-keys.sh and set it in deploy/.env.");
+        }
+
+        services.AddSingleton(jwtOptions);
+        services.AddSingleton<IAccessTokenService, AccessTokenService>();
+        services.AddSingleton<IPasswordHasher, PasswordHasher>();
 
         return services;
     }

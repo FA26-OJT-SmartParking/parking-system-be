@@ -1,0 +1,50 @@
+name: dotnet
+
+# Checks the code format, builds the whole solution and runs every test project: the five services, the gateway and the gRPC integration tests.
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - services/**
+      - '!services/ai/**'
+      - shared/**
+      - grpc_proto/**
+      - gateway/**
+      - tests/**
+      - ParkingSystem.slnx
+      - Directory.Build.props
+      - Directory.Packages.props
+      - nuget.config
+      - .github/workflows/dotnet.yml
+  pull_request:
+    paths:
+      - services/**
+      - '!services/ai/**'
+      - shared/**
+      - grpc_proto/**
+      - gateway/**
+      - tests/**
+      - ParkingSystem.slnx
+      - Directory.Build.props
+      - Directory.Packages.props
+      - nuget.config
+      - .github/workflows/dotnet.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
+      - run: dotnet format whitespace ParkingSystem.slnx --verify-no-changes
+      - run: dotnet format style ParkingSystem.slnx --verify-no-changes --severity warn
+      - run: dotnet test ParkingSystem.slnx -c Release

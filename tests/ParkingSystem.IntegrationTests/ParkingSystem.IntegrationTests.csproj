@@ -23,7 +23,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\services\parking\Parking.Infrastructure\Parking.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\services\payment\Payment.Infrastructure\Payment.Infrastructure.csproj" />
     <ProjectReference Include="..\..\services\booking\Booking.Infrastructure\Booking.Infrastructure.csproj" />
   </ItemGroup>
 

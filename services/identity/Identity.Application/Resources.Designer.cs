@@ -38,4 +38,12 @@ public class Resources
     public static string InvalidRequestBodyMessage => ResourceManager.GetString("InvalidRequestBodyMessage", Culture) ?? string.Empty;
 
     public static string NotFoundMessage => ResourceManager.GetString("NotFoundMessage", Culture) ?? string.Empty;
+
+    public static string UsernameIsRequired => ResourceManager.GetString("UsernameIsRequired", Culture) ?? string.Empty;
+
+    public static string PasswordIsRequired => ResourceManager.GetString("PasswordIsRequired", Culture) ?? string.Empty;
+
+    public static string IncorrectUsernameOrPassword => ResourceManager.GetString("IncorrectUsernameOrPassword", Culture) ?? string.Empty;
+
+    public static string SignInSuccessfully => ResourceManager.GetString("SignInSuccessfully", Culture) ?? string.Empty;
 }

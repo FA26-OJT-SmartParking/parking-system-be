@@ -4,6 +4,4 @@ namespace Booking.Application.Common.Interfaces.Grpc;
 public interface IUnitOfGrpc
 {
     IParkingGrpcClient ParkingGrpcClient { get; }
-
-    IPaymentGrpcClient PaymentGrpcClient { get; }
 }

@@ -1,18 +1,7 @@
-using System.Security.Cryptography;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.IdentityModel.Tokens;
-using OpenTelemetry;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 using Serilog;
-using Serilog.Sinks.OpenTelemetry;
 
 namespace ParkingSystem.ServiceDefaults;
 
@@ -27,69 +16,10 @@ public static class ServiceDefaultsExtensions
     {
         var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
 
-        builder.Services.AddSerilog(logger =>
-        {
-            logger.ReadFrom.Configuration(builder.Configuration)
-                .Enrich.FromLogContext()
-                .WriteTo.Console();
-            if (!string.IsNullOrEmpty(otlpEndpoint))
-            {
-                logger.WriteTo.OpenTelemetry(options =>
-                {
-                    options.Endpoint = otlpEndpoint;
-                    options.Protocol = OtlpProtocol.Grpc;
-                    options.ResourceAttributes = new Dictionary<string, object> { ["service.name"] = serviceName };
-                });
-            }
-        });
-
-        var telemetry = builder.Services.AddOpenTelemetry()
-            .ConfigureResource(resource => resource.AddService(serviceName))
-            .WithTracing(tracing => tracing
-                .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation()
-                .AddSource("MassTransit"))
-            .WithMetrics(metrics => metrics
-                .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation());
-        if (!string.IsNullOrEmpty(otlpEndpoint))
-        {
-            telemetry.UseOtlpExporter();
-        }
-
+        builder.AddServiceLogging(serviceName, otlpEndpoint);
+        builder.AddServiceTelemetry(serviceName, otlpEndpoint);
         builder.Services.AddHealthChecks();
-
-        // Tokens are signed by the identity service with its private key (RS256, NFR-SEC-003);
-        // the gateway and every service only hold the public key, so none of them can issue a token.
-        var publicKey = builder.Configuration["Jwt:PublicKey"]
-            ?? throw new InvalidOperationException("Jwt:PublicKey is not configured (set it in deploy/.env or with dotnet user-secrets).");
-        var rsa = RSA.Create();
-        rsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(publicKey), out _);
-        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                    ValidateAudience = false,
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new RsaSecurityKey(rsa),
-                    ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
-                };
-
-                // 401 and 403 use the same body as every other error (see the API Design Template)
-                options.Events = new JwtBearerEvents
-                {
-                    OnChallenge = context =>
-                    {
-                        context.HandleResponse();
-                        return WriteErrorAsync(context.Response, StatusCodes.Status401Unauthorized, "You are not signed in. Sign in and try again.");
-                    },
-                    OnForbidden = context =>
-                        WriteErrorAsync(context.Response, StatusCodes.Status403Forbidden, "You do not have permission to do this."),
-                };
-            });
-        builder.Services.AddAuthorization();
+        builder.AddJwtValidation();
 
         return builder;
     }
@@ -106,26 +36,5 @@ public static class ServiceDefaultsExtensions
         app.UseAuthorization();
         app.MapHealthChecks("/health");
         return app;
-    }
-
-    /// <summary>
-    /// Applies the EF Core migrations of <typeparamref name="TDbContext"/> on startup in Development.
-    /// Elsewhere, run them as a deployment step (dotnet ef database update) before the new version starts.
-    /// </summary>
-    public static WebApplication MigrateDatabase<TDbContext>(this WebApplication app)
-        where TDbContext : DbContext
-    {
-        if (app.Environment.IsDevelopment())
-        {
-            using var scope = app.Services.CreateScope();
-            scope.ServiceProvider.GetRequiredService<TDbContext>().Database.Migrate();
-        }
-        return app;
-    }
-
-    private static Task WriteErrorAsync(HttpResponse response, int statusCode, string message)
-    {
-        response.StatusCode = statusCode;
-        return response.WriteAsJsonAsync(new { result = (object?)null, isSuccess = false, statusCode, message });
     }
 }

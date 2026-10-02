@@ -2,6 +2,7 @@ using Identity.Application;
 using Identity.Infrastructure;
 using Identity.Persistence;
 using Identity.WebAPI.Middleware;
+using Identity.WebAPI.Seeding;
 using Microsoft.AspNetCore.Mvc;
 using ParkingSystem.ServiceDefaults;
 
@@ -37,6 +38,8 @@ if (app.Environment.IsDevelopment())
 app.UseServiceDefaults(application => application.UseMiddleware<ExceptionHandlingMiddleware>());
 app.UseStatusCodePages(ErrorExceptionHandler.WriteStatusCodeBody);
 app.MigrateDatabase<ApplicationDbContext>();
-app.MapControllers();
+await DevelopmentUserSeeder.SeedAsync(app);
+// Every controller asks for a signed-in user; a public API says so with [AllowAnonymous]
+app.MapControllers().RequireAuthorization();
 
 app.Run();
