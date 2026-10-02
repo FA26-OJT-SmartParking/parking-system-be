@@ -1,6 +1,6 @@
 name: dotnet
 
-# Builds the whole solution and runs every test project: the five services, the gateway and the gRPC integration tests.
+# Checks the code format, builds the whole solution and runs every test project: the five services, the gateway and the gRPC integration tests.
 on:
   push:
     branches: [main, develop]
@@ -45,4 +45,6 @@ jobs:
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props') }}
+      - run: dotnet format whitespace ParkingSystem.slnx --verify-no-changes
+      - run: dotnet format style ParkingSystem.slnx --verify-no-changes --severity warn
       - run: dotnet test ParkingSystem.slnx -c Release

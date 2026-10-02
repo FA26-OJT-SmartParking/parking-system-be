@@ -43,4 +43,5 @@
 - Giữ MassTransit 8 và MediatR 12.5 (bản mới hơn là bản thương mại); không dùng AutoMapper, map DTO viết tay.
 - Listener hoặc consumer chạy nền (MQTT, RabbitMQ) đặt ở `X.Infrastructure`: chỉ kết nối, đọc và phân tích tin nhắn rồi gửi Command qua MediatR. Nghiệp vụ nằm ở Handler trong `X.Application`; WebAPI không dùng trực tiếp DbContext hay MassTransit.
 - Mọi endpoint mặc định yêu cầu đăng nhập. API công khai phải có `[AllowAnonymous]` (hoặc `.AllowAnonymous()` với `MapHub`, `MapGrpcService`) và ghi `Permission: N/A` trong file mô tả API.
+- CI kiểm tra định dạng code theo `.editorconfig` (`dotnet format whitespace` và `dotnet format style`). Chạy `dotnet format ParkingSystem.slnx` trước khi push để tự sửa.
 - Không đặt giá trị cấu hình mặc định trong code; cấu hình mới khai báo trong `.env.example` hoặc `appsettings.Development.json`.
