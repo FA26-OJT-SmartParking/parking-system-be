@@ -1,14 +1,13 @@
 using FluentValidation;
 using Booking.Application.Common.Behaviors;
 using MediatR;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Booking.Application;
 
 public static class ApplicationDependencyInjection
 {
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         var assembly = typeof(ApplicationDependencyInjection).Assembly;
 
